@@ -1,0 +1,2 @@
+DROP FUNCTION IF EXISTS pg_catalog.int16um(int16) CASCADE;
+DROP OPERATOR IF EXISTS pg_catalog.-(none, int16) CASCADE;

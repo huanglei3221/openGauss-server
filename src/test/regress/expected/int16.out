@@ -298,6 +298,12 @@ select * from INT16_TBL2 order by 3;
 (10 rows)
 
 drop table if exists INT16_TBL2;
+select pg_typeof(-9999::int16);
+ pg_typeof 
+-----------
+ int16
+(1 row)
+
 DROP SCHEMA schema_int16 CASCADE;
 NOTICE:  drop cascades to 3 other objects
 DETAIL:  drop cascades to table int16_tbl

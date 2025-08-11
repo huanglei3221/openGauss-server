@@ -110,4 +110,5 @@ select * from INT16_TBL2 order by 3;
 select * from INT16_TBL2 order by 3;
 drop table if exists INT16_TBL2;
 
+select pg_typeof(-9999::int16);
 DROP SCHEMA schema_int16 CASCADE;
