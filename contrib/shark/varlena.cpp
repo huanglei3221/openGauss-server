@@ -73,7 +73,9 @@ typedef enum
 	OBJECT_TYPE_UNIQUE_CONSTRAINT,
 	OBJECT_TYPE_VIEW,
     OBJECT_TYPE_MATERIALIZED_VIEW,
-	OBJECT_TYPE_EXTENDED_STORED_PROCEDURE
+	OBJECT_TYPE_EXTENDED_STORED_PROCEDURE,
+
+    OBJECT_TYPE_INVALID,
 } PropertyType;
 
 Oid tsql_get_proc_nsp_oid(Oid object_id);
@@ -295,7 +297,7 @@ static Oid search_oid_in_schema(char* schema_name, char* obj_name, char *object_
 
 static int search_type_in_class(Oid* schema_id, Oid object_id, char* object_name)
 {
-	int type;
+    int type = OBJECT_TYPE_INVALID;
 	HeapTuple tuple = SearchSysCache1(RELOID, ObjectIdGetDatum(object_id));
 	if (HeapTupleIsValid(tuple))
 	{
@@ -328,7 +330,7 @@ static int search_type_in_class(Oid* schema_id, Oid object_id, char* object_name
 
 static int search_type_in_proc(Oid* schema_id, Oid object_id, char* object_name)
 {
-	int type;
+    int type = OBJECT_TYPE_INVALID;
 	HeapTuple tuple = SearchSysCache1(PROCOID, ObjectIdGetDatum(object_id));
 	if (HeapTupleIsValid(tuple))
 	{
@@ -392,7 +394,7 @@ static int search_type_in_attr(Oid* schema_id, Oid object_id, char* object_name)
 	Relation	attrdefrel;
 	ScanKeyData key;
 	SysScanDesc attrscan;
-	int type;
+    int type = OBJECT_TYPE_INVALID;
 
 	attrdefrel = table_open(AttrDefaultRelationId, AccessShareLock);
 	ScanKeyInit(&key,
@@ -462,7 +464,7 @@ static int search_type_in_attr(Oid* schema_id, Oid object_id, char* object_name)
 
 static int search_type_in_cons(Oid* schema_id, Oid object_id, char* object_name)
 {
-	int type;
+    int type = OBJECT_TYPE_INVALID;
 	HeapTuple tuple = SearchSysCache1(CONSTROID, ObjectIdGetDatum(object_id));
 	if (HeapTupleIsValid(tuple))
 	{
@@ -496,7 +498,7 @@ static int search_type_in_trigger(Oid* schema_id, Oid object_id, char* object_na
 	Relation    trigDesc;
 	HeapTuple   tup;
 	Form_pg_trigger trig;
-	int type;
+    int type = OBJECT_TYPE_INVALID;
 
 	trigDesc = table_open(TriggerRelationId, AccessShareLock);
 	tup = get_catalog_object_by_oid(trigDesc, object_id);

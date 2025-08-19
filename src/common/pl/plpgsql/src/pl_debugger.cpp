@@ -195,7 +195,7 @@ void check_debug(PLpgSQL_function* func, PLpgSQL_execstate* estate)
                 }
             }
         } else {
-            if (entry != NULL) {
+            if (found) {
                 entry->func = func;
             }
             /* maintain session's debug server is on base turn on function */

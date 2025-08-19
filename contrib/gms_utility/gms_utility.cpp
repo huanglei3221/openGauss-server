@@ -445,9 +445,9 @@ static void DoAnalyzeSchemaStatistic(char* schema, AnalyzeVar* var, AnalyzeMetho
 
     relnamesList = GetRelationsInSchema(schema);
     executeSql = makeStringInfo();
-    
+
+    saveEstimate = default_statistics_target;
     if (var->isEstimate) {
-        saveEstimate = default_statistics_target;
         default_statistics_target = var->validRows ? var->estimateRows
                                     : var->validPercent ? -(var->estimatePercent)
                                     : default_statistics_target;
@@ -628,7 +628,7 @@ static char* CanonicalizeParseInternal(char* name, int len, bool allowAllDigit,
     result = makeStringInfo();
     tmp = makeStringInfo();
 
-    while (name[traveLen] != '\0' && traveLen < len) {
+    while (traveLen < len && name[traveLen] != '\0') {
         curChar = name[traveLen];
         traveLen++;
 
@@ -1093,7 +1093,7 @@ static TokenizeVar* NameParseInternal(char* name, int len, bool truncated)
 
     var = MakeTokenizeVar();
 
-    while (name[traveLen] != '\0' && traveLen < len) {
+    while (traveLen < len && name[traveLen] != '\0') {
         curChar = name[traveLen];
         traveLen++;
 

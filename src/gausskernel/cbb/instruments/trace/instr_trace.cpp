@@ -318,7 +318,7 @@ void end_tracing(void)
 static void process_query_desc(const Traceparent * traceparent, const QueryDesc *queryDesc,
     int sql_error_code, TimestampTz parent_end)
 {
-    if (!queryDesc->totaltime->running && queryDesc->totaltime->total == 0) {
+    if (queryDesc->totaltime && !queryDesc->totaltime->running && queryDesc->totaltime->total == 0) {
         return;
     }
 
@@ -820,7 +820,7 @@ void instr_trace_ExecutorFinish(QueryDesc *queryDesc)
 
     /* Save the initial number of spans for the current session. We will only
      * store ExecutorFinish span if we have created nested spans. */
-    num_stored_spans = current_trace_spans->end;
+    num_stored_spans = current_trace_spans ? current_trace_spans->end : 0;
 
     if (nested_level == 0) {
         /* Save the root query_id to be used by the xact commit hook */

@@ -679,7 +679,8 @@ static void buildWorkerResponse(ArchiveHandle* AH, TocEntry* te, char* buf, int 
 static int parseWorkerResponse(TocEntry* te, const char* msg)
 {
     DumpId dumpId;
-    int nBytes, n_errors;
+    int nBytes = 0;
+    int n_errors = 0;
 
     if (messageStartsWith(msg, "OK ")) {
         int ret = sscanf_s(msg, "OK %d %d%n", &dumpId, &n_errors, &nBytes);

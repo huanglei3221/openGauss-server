@@ -522,9 +522,8 @@ void RackMemoryAllocator::AllocSetReset(MemoryContext context)
     RackAllocSet set = (RackAllocSet)context;
     AllocBlock block;
     const MemoryProtectFuncDef* func = NULL;
-    MemoryContextReset(set->local_context);
-
     AssertArg(AllocSetIsValid(set));
+    MemoryContextReset(set->local_context);
 
     if (is_shared) {
         MemoryContextLock(context);

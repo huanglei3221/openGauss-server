@@ -3876,7 +3876,7 @@ static ObjTree* deparse_AlterRelation(CollectedCommand *cmd, ddl_deparse_context
         case RELKIND_RELATION:
             reltype = "TABLE";
             istable = true;
-            if (stmt->relation->inhOpt == INH_NO) {
+            if (stmt && stmt->relation->inhOpt == INH_NO) {
                 isonly = true;
             }
             break;
@@ -4005,7 +4005,7 @@ static ObjTree* deparse_AlterRelation(CollectedCommand *cmd, ddl_deparse_context
                     Oid            constrOid = sub->address.objectId;
                     char         *indexname = NULL;
                     ListCell    *lcell;
-                    Assert(IsA(subcmd->def, IndexStmt));
+                    Assert(subcmd->def && IsA(subcmd->def, IndexStmt));
                     istmt = (IndexStmt *) subcmd->def;
 
                     Assert(istmt->isconstraint && istmt->unique);
