@@ -257,9 +257,6 @@ static RedoItem *ProcTxnItem(RedoItem *item)
             (void)MemoryContextSwitchTo(oldCtx);
             FreeRedoItem(item);
         }
-        if (recordXTime != 0) {
-            SetLatestXTime(recordXTime);
-        }
     } else {
         FreeRedoItem(item);
     }

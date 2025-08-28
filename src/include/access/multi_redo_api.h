@@ -183,4 +183,15 @@ static inline void CountAndGetRedoTime(RedoTimeCost &curCost, RedoTimeCost &next
     nextCost.startTime = curTime;
 }
 
+typedef enum {
+    LATCH_INIT,
+    LATCH_SET,
+    LATCH_RESET,
+    LATCH_OWN,
+    LATCH_DISOWN,
+    LATCH_WAIT,
+} RecoverDelayLatchOperation;
+
+void RecoverDelayLatchOp(RecoverDelayLatchOperation op, int wakeEvents = 0, long waitTime = 0);
+
 #endif

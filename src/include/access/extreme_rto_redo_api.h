@@ -95,4 +95,7 @@ bool IsExtremeRtoSmartShutdown();
 void ExtremeRtoRedoManagerSendEndToStartup();
 void ExtremeRtoSMBReadNextXLogRecord(XLogReaderState *ptr);
 
+void ExtremeRedoDelayLatchOp(int op, int wakeEvents, long waitTime);
+TimestampTz* ExtremeRedoGetlayUntilTime(void);
+
 #endif

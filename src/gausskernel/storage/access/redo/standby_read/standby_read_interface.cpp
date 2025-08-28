@@ -332,6 +332,12 @@ Buffer standby_read_buf(
 
     bool result = extreme_rto_standby_read::get_page_lsn_info(old_buf_tag, buf_tag, strategy, read_lsn, lsn_info);
     if (!result) {
+        if (u_sess->attr.attr_storage.recovery_min_apply_delay > 0) {
+            read_buf = extreme_rto_standby_read::standby_read_buf_new(reln, fork_num, block_num, mode, strategy);
+            if (read_buf != InvalidBuffer) {
+                return read_buf;
+            }
+        }
         ereport(
             ERROR,
             (errcode(ERRCODE_INTERNAL_ERROR),

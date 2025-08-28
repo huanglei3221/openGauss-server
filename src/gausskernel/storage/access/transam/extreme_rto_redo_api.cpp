@@ -75,6 +75,8 @@ typedef struct f_extreme_rto_redo {
     RedoWaitInfo (*redo_get_io_event)(int32 event_id);
     void (*redo_get_worker_statistic)(uint32 *realNum, RedoWorkerStatsData *worker, uint32 workerLen);
     void (*redo_get_worker_time_count)(RedoWorkerTimeCountsInfo **workerCountInfoList, uint32 *realNum);
+    void (*delay_lactch_op)(int op, int wakeEvents, long waitTime);
+    TimestampTz* (*get_delay_untiltime)(void);
 } f_extreme_rto_redo;
 
 static const f_extreme_rto_redo extreme_rto_redosw[] = {
@@ -107,6 +109,9 @@ static const f_extreme_rto_redo extreme_rto_redosw[] = {
         extreme_rto::redo_get_io_event,
         extreme_rto::redo_get_worker_statistic,
         extreme_rto::redo_get_worker_time_count,
+
+        extreme_rto::delay_lactch_op,
+        extreme_rto::get_recovery_delay_untiltime
     },
 
     /* ondemand extreme redo */
@@ -138,6 +143,9 @@ static const f_extreme_rto_redo extreme_rto_redosw[] = {
         ondemand_extreme_rto::redo_get_io_event,
         ondemand_extreme_rto::redo_get_worker_statistic,
         ondemand_extreme_rto::redo_get_worker_time_count,
+
+        ondemand_extreme_rto::delay_lactch_op,
+        ondemand_extreme_rto::get_recovery_delay_untiltime,
     },
 };
 
@@ -277,6 +285,16 @@ void ExtremeRedoGetWorkerStatistic(uint32 *realNum, RedoWorkerStatsData *worker,
 void ExtremeRedoGetWorkerTimeCount(RedoWorkerTimeCountsInfo **workerCountInfoList, uint32 *realNum)
 {
     (*(extreme_rto_redosw[g_extreme_rto_type].redo_get_worker_time_count))(workerCountInfoList, realNum);
+}
+
+void ExtremeRedoDelayLatchOp(int op, int wakeEvents, long waitTime)
+{
+    (*(extreme_rto_redosw[g_extreme_rto_type].delay_lactch_op))(op, wakeEvents, waitTime);
+}
+
+TimestampTz* ExtremeRedoGetlayUntilTime(void)
+{
+    return (*(extreme_rto_redosw[g_extreme_rto_type].get_delay_untiltime))();
 }
 
 void ExtremeEndDispatcherContext()

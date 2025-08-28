@@ -189,6 +189,8 @@ struct PageRedoWorker {
     char page[BLCKSZ];
     XLogBlockDataParse *curRedoBlockState;
     StandbyReadMetaInfo standby_read_meta_info;
+    Latch recoveryWakeupDelayLatch;
+    TimestampTz recoveryDelayUntilTime;
 };
 
 
@@ -261,5 +263,8 @@ void RecordBadBlockAndPushToRemote(XLogBlockDataParse *datadecode, PageErrorType
     XLogRecPtr old_lsn, XLogPhyBlock pblk);
 void SeqCheckRemoteReadAndRepairPage();
 bool exceed_send_lsn_forworder_interval();
+
+void delay_lactch_op(int op, int wakeEvents, long waitTime);
+TimestampTz* get_recovery_delay_untiltime(void);
 }  // namespace extreme_rto
 #endif

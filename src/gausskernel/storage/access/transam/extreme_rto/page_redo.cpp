@@ -146,6 +146,31 @@ RefOperate recordRefOperate = {
     AddRecordReadBlocks,
 };
 
+typedef void (*latch_op_fun)(volatile Latch* latch);
+
+static latch_op_fun g_latch_op[LATCH_WAIT] = {InitSharedLatch, SetLatch, ResetLatch, OwnLatch, DisownLatch};
+
+void delay_lactch_op(int op, int wakeEvents, long waitTime)
+{
+    if (g_redoWorker == NULL || op > LATCH_WAIT || op < LATCH_INIT) {
+        return;
+    }
+
+    if (op >= LATCH_INIT && op < LATCH_WAIT) {
+        (*(g_latch_op[op]))(&g_redoWorker->recoveryWakeupDelayLatch);
+    } else {
+        WaitLatch(&g_redoWorker->recoveryWakeupDelayLatch, wakeEvents, waitTime);
+    }
+}
+
+TimestampTz* get_recovery_delay_untiltime(void)
+{
+    if (g_redoWorker != NULL) {
+        return &(g_redoWorker->recoveryDelayUntilTime);
+    }
+    return NULL;
+}
+
 void UpdateRecordGlobals(RedoItem *item, HotStandbyState standbyState)
 {
     t_thrd.xlog_cxt.ReadRecPtr = item->record.ReadRecPtr;
@@ -240,6 +265,8 @@ PageRedoWorker *CreateWorker(uint32 id)
     worker->parseManager.parsebuffers = NULL;
     worker->remoteReadPageNum = 0;
     worker->badPageHashTbl = BadBlockHashTblCreate();
+    InitSharedLatch(&worker->recoveryWakeupDelayLatch);
+
     return worker;
 }
 
@@ -1380,10 +1407,10 @@ void TrxnWorkMain()
                 Assert(CheckFullSyncCheckpoint(item));
                 TrxnWorkNotifyRedoWorker();
             }
-
-            if (IsCheckPoint(&item->record) || (IsXactXlog(&item->record) &&
-                xact_has_invalid_msg_or_delete_file(&item->record)) || IsBarrierRelated(&item->record) ||
-                IsDataBaseDrop(&item->record)) {
+            bool isXactXlog = IsXactXlog(&item->record);
+            if (IsCheckPoint(&item->record) || (isXactXlog && xact_has_invalid_msg_or_delete_file(&item->record)) ||
+                IsBarrierRelated(&item->record) || IsDataBaseDrop(&item->record) ||
+                (isXactXlog && (u_sess->attr.attr_storage.recovery_min_apply_delay > 0))) {
                 exrto_generate_snapshot(g_redoWorker->lastReplayedEndRecPtr);
             }
 
@@ -2662,8 +2689,10 @@ void ParallelRedoThreadMain()
     InitRecoveryLockHash();
     WaitStateNormal();
     EnableSyncRequestForwarding();
+    RecoverDelayLatchOp(LATCH_OWN);
 
     int retCode = RedoMainLoop();
+    RecoverDelayLatchOp(LATCH_DISOWN);
     StandbyReleaseAllLocks();
     if (g_redoWorker->role == REDO_TRXN_WORKER) {
         redo_worker_release_all_locks();
