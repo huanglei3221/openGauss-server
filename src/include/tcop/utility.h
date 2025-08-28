@@ -224,5 +224,5 @@ extern void get_opclass_name(Oid opclass, Oid actual_datatype, StringInfo buf);
 typedef void (*FetchStatusHook)(int fetchStatus);
 typedef void (*RowcountHook)(int64 rowcount);
 extern Oid pg_get_serial_sequence_internal(Oid tableOid, AttrNumber attnum, bool find_identity, char** out_seq_name);
-
+extern Oid get_table_identity(Oid tableOid);
 #endif /* UTILITY_H */

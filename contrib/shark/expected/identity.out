@@ -479,5 +479,38 @@ ERROR:  Cannot update identity column "id"
 LINE 1: update t_identity_0013 set id=4 where name='zhangsan';
                                    ^
 drop table t_identity_0013;
+-- ident_current after truncate table. expected: success.
+create table t_identity_0021(id int identity(100,1), name varchar(10));
+NOTICE:  CREATE TABLE will create implicit sequence "t_identity_0021_id_seq_identity" for serial column "t_identity_0021.id"
+insert into t_identity_0021(name) values('zhangsan');
+insert into t_identity_0021(name) values('lisi');
+select ident_current('t_identity_0021');
+ ident_current 
+---------------
+           101
+(1 row)
+
+truncate table t_identity_0021;
+select ident_current('t_identity_0021');
+ ident_current 
+---------------
+           100
+(1 row)
+
+insert into t_identity_0021(name) values('zhangsan');
+select ident_current('t_identity_0021');
+ ident_current 
+---------------
+           100
+(1 row)
+
+insert into t_identity_0021(name) values('lisi');
+select ident_current('t_identity_0021');
+ ident_current 
+---------------
+           101
+(1 row)
+
+drop table t_identity_0021;
 reset current_schema;
 drop schema identity_schema;
