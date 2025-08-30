@@ -21,7 +21,6 @@ static uint32 shark_index;
 
 extern List* tsql_raw_parser(const char* str, List** query_string_locationlist);
 extern void assign_tablecmds_hook(void);
-extern Oid pg_get_serial_sequence_internal(Oid tableOid, AttrNumber attnum, bool find_identity, char** out_seq_name);
 static List* RewriteTypmodExpr(List *expr_list);
 static bool CheckIsMssqlHex(char *str);
 static Node *make_int_const(int val, int location);

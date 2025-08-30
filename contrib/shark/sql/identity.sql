@@ -282,5 +282,13 @@ END; $$;
 
 drop table t_identity_0020;
 
+create table t_identity_0013(id int identity, name varchar(10));
+insert into t_identity_0013(name) values('zhangsan');
+insert into t_identity_0013(name) values('lisi');
+insert into t_identity_0013(name) values('wangwu');
+--error
+update t_identity_0013 set id=4 where name='zhangsan';
+drop table t_identity_0013;
+
 reset current_schema;
 drop schema identity_schema;

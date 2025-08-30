@@ -200,7 +200,6 @@ static void TransformModifyColumndef(CreateStmtContext* cxt, AlterTableCmd* cmd)
 static void TransformColumnDefinitionOptions(CreateStmtContext* cxt, ColumnDef* column);
 static void TransformColumnDefinitionConstraints(
     CreateStmtContext* cxt, ColumnDef* column, bool preCheck, bool is_modify);
-extern Oid pg_get_serial_sequence_internal(Oid tableOid, AttrNumber attnum, bool find_identity, char** out_seq_name);
 #define REDIS_SCHEMA "data_redis"
 
 /*

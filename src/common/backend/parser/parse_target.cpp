@@ -58,7 +58,6 @@ static List* checkSubqueryInsertTargets(ParseState* pstate, List* cols, List** a
 static List* checkRelationInsertTargets(ParseState* pstate, List* cols, List** attrnos);
 
 extern void checkArrayTypeInsert(ParseState* pstate, Expr* expr);
-extern Oid pg_get_serial_sequence_internal(Oid tableOid, AttrNumber attnum, bool find_identity, char** out_seq_name);
 
 /*
  * @Description: return the last filed's name and ignore * or subscrpts
