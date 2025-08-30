@@ -7541,7 +7541,7 @@ static bool isSuperRole(PGconn* conn, char* rolname)
 
     appendPQExpBuffer(query,
         "SELECT rolname FROM pg_catalog.pg_roles WHERE rolname='%s' AND "
-        "(rolsuper='t' OR rolsystemadmin = 't')",
+        "(rolsuper='t'::boolean OR rolsystemadmin = 't'::boolean)",
         rolname);
     isExists = isExistsSQLResult(conn, query->data);
     destroyPQExpBuffer(query);
@@ -7577,7 +7577,7 @@ static bool IsExecRoleCanDumpObject(Archive* fout, const char* execRole, const c
     bool canDump = false;
 
     appendPQExpBuffer(query,
-        "SELECT CASE WHEN (r1.rolsuper = 't') OR (r1.rolsystemadmin = 't' AND r2.rolsuper = 'f') "
+        "SELECT CASE WHEN (r1.rolsuper = 't'::boolean) OR (r1.rolsystemadmin = 't'::boolean AND r2.rolsuper = 'f'::boolean) "
         "THEN true ELSE false END "
         "FROM pg_catalog.pg_roles r1 JOIN pg_catalog.pg_roles r2 "
         "ON r1.rolname = '%s' AND r2.rolname = '%s'", execRole, objectOwner);
