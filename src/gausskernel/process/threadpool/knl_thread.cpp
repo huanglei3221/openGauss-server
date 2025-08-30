@@ -1292,6 +1292,7 @@ static void knl_t_libpq_init(knl_t_libpq_context* libpq_cxt)
 
     libpq_cxt->parsed_hba_lines = NIL;
     libpq_cxt->parsed_hba_context = NULL;
+    libpq_cxt->WorkerRecvStartupPacket = false;
 }
 
 

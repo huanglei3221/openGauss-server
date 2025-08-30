@@ -11268,6 +11268,11 @@ void startup_die(SIGNAL_ARGS)
     } else {
         proc_exit(1);
     }
+    if (t_thrd.role == WORKER && t_thrd.libpq_cxt.WorkerRecvStartupPacket) {
+        int sock = u_sess->proc_cxt.MyProcPort->sock;
+        u_sess->proc_cxt.MyProcPort->sock = -1;
+        closesocket(sock);
+    }
 }
 
 /* copy from startup_die, and set cancel_from_timeout flag */

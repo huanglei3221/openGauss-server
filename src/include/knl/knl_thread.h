@@ -2210,6 +2210,7 @@ typedef struct knl_t_libpq_context {
 
     /* variables for save query results to temp file*/
     bool save_query_result_to_disk;
+    bool WorkerRecvStartupPacket;
     struct TempFileContextInfo* PqTempFileContextInfo;
 
     /*
