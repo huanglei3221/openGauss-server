@@ -457,6 +457,25 @@ DELETE FROM (SELECT sal FROM emp) WHERE sal < 3000;
 ERROR:  permission denied for relation emp
 DETAIL:  N/A
 \c -
+GRANT DELETE, UPDATE ON emp TO usr1;
+ALTER SESSION SET SESSION AUTHORIZATION usr1 PASSWORD '1234@abcd';
+DELETE FROM (SELECT sal FROM emp) WHERE sal < 3000;
+ERROR:  permission denied for relation emp
+DETAIL:  N/A
+UPDATE (SELECT sal FROM emp) SET sal = 3000 WHERE sal < 3000;
+ERROR:  permission denied for relation emp
+DETAIL:  N/A
+\c -
+REVOKE ALL PRIVILEGES ON emp FROM usr1;
+GRANT SELECT ON emp TO usr1;
+ALTER SESSION SET SESSION AUTHORIZATION usr1 PASSWORD '1234@abcd';
+DELETE FROM (SELECT sal FROM emp) WHERE sal < 3000;
+ERROR:  permission denied for relation emp
+DETAIL:  N/A
+UPDATE (SELECT sal FROM emp) SET sal = 3000 WHERE sal < 3000;
+ERROR:  permission denied for relation emp
+DETAIL:  N/A
+\c -
 GRANT DELETE, SELECT ON emp TO usr1;
 ALTER SESSION SET SESSION AUTHORIZATION usr1 PASSWORD '1234@abcd';
 BEGIN;
@@ -474,7 +493,34 @@ SELECT * FROM emp WHERE sal < 3000 ORDER BY empno ASC;
 (0 rows)
 
 ROLLBACK;
+DELETE FROM (SELECT sal FROM emp NATURAL JOIN dept) WHERE sal < 3000;
+ERROR:  permission denied for relation dept
+DETAIL:  N/A
 \c -
+GRANT SELECT ON dept TO usr1;
+ALTER SESSION SET SESSION AUTHORIZATION usr1 PASSWORD '1234@abcd';
+DELETE FROM (SELECT sal FROM emp NATURAL JOIN dept) WHERE sal < 3000;
+ERROR:  permission denied for relation dept
+DETAIL:  N/A
+\c - 
+GRANT DELETE ON dept TO usr1;
+BEGIN;
+SELECT COUNT(*) FROM emp NATURAL JOIN dept WHERE sal < 3000;
+ count 
+-------
+     2
+(1 row)
+
+DELETE FROM (SELECT sal FROM emp NATURAL JOIN dept) WHERE sal < 3000;
+SELECT COUNT(*) FROM emp NATURAL JOIN dept WHERE sal < 3000;
+ count 
+-------
+     0
+(1 row)
+
+ROLLBACK;
+\c -
+REVOKE ALL PRIVILEGES ON dept FROM usr1;
 REVOKE ALL PRIVILEGES ON emp FROM usr1;
 DROP USER usr1;
 -- update_multi_base_table_view.sql
