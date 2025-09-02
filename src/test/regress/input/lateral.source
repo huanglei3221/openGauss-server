@@ -630,5 +630,10 @@ drop table INT2_TBL;
 drop table departments;
 drop table employees;
 
+
+create table t3 (a int);
+select * from t3 as t0, lateral (select * from t3 inner join t3 as t1 on (t0.a is not null), lateral (select * from t3 as t2 where exists (select * from t3 where exists (select t2.a where t1.a is not null))));
+drop table t3;
+
 -- clean
 drop schema if exists lateral_test cascade;

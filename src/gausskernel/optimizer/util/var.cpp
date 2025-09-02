@@ -157,6 +157,7 @@ pull_varnos_of_level(Node *node, int levelsup)
 
    context.varnos = NULL;
    context.sublevels_up = levelsup;
+   context.isSkipSublink = false;
 
    /*
     * Must be prepared to start with a Query or a bare expression tree; if
