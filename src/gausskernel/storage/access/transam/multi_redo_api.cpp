@@ -49,8 +49,8 @@ void StartUpMultiRedo(XLogReaderState *xlogreader, uint32 privateLen)
 
 bool IsMultiThreadRedoRunning()
 {
-    return ((get_real_recovery_parallelism() > 1 && parallel_recovery::g_dispatcher != 0) || 
-        IsExtremeMultiThreadRedoRunning());
+    return ((get_real_recovery_parallelism() > 1 && parallel_recovery::g_dispatcher != 0) ||
+            IsExtremeMultiThreadRedoRunning());
 }
 
 void DispatchRedoRecord(XLogReaderState *record, List *expectedTLIs, TimestampTz recordXTime)
@@ -70,8 +70,6 @@ void DispatchRedoRecord(XLogReaderState *record, List *expectedTLIs, TimestampTz
         ApplyRedoRecord(record);
         record->readblocks = u_sess->instr_cxt.pg_buffer_usage->shared_blks_read - readbufcountbefore;
         CountXLogNumbers(record);
-        if (XLogRecGetRmid(record) == RM_XACT_ID)
-            SetLatestXTime(recordXTime);
         SetXLogReplayRecPtr(record->ReadRecPtr, record->EndRecPtr);
         CheckRecoveryConsistency();
     }
@@ -229,6 +227,138 @@ void MultiRedoMain()
     }
 }
 
+static void recoveryWakeupDelayLatchOp(RecoverDelayLatchOperation op, int wakeEvents, long waitTime)
+{
+    switch (op) {
+        case LATCH_INIT: {
+            InitSharedLatch(&t_thrd.shemem_ptr_cxt.XLogCtl->recoveryWakeupDelayLatch);
+            break;
+        }
+        case LATCH_SET: {
+            SetLatch(&t_thrd.shemem_ptr_cxt.XLogCtl->recoveryWakeupDelayLatch);
+            break;
+        }
+        case LATCH_RESET: {
+            ResetLatch(&t_thrd.shemem_ptr_cxt.XLogCtl->recoveryWakeupDelayLatch);
+            break;
+        }
+        case LATCH_OWN: {
+            OwnLatch(&t_thrd.shemem_ptr_cxt.XLogCtl->recoveryWakeupDelayLatch);
+            break;
+        }
+        case LATCH_DISOWN: {
+            DisownLatch(&t_thrd.shemem_ptr_cxt.XLogCtl->recoveryWakeupDelayLatch);
+            break;
+        }
+        case LATCH_WAIT: {
+            WaitLatch(&t_thrd.shemem_ptr_cxt.XLogCtl->recoveryWakeupDelayLatch, wakeEvents, waitTime);
+            break;
+        }
+        default:
+            break;
+    }
+}
+
+void RecoverDelayLatchOp(RecoverDelayLatchOperation op, int wakeEvents, long waitTime)
+{
+    if (IsExtremeRedo()) {
+        ExtremeRedoDelayLatchOp(op, wakeEvents, waitTime);
+    } else {
+        recoveryWakeupDelayLatchOp(op, wakeEvents, waitTime);
+    }
+}
+
+static TimestampTz* GetDelayUntilTime(void)
+{
+    if (IsExtremeRedo()) {
+        return ExtremeRedoGetlayUntilTime();
+    } else {
+        return &(u_sess->attr.attr_storage.recoveryDelayUntilTime);
+    }
+}
+
+/*
+ * When recovery_min_apply_delay is set, we wait long enough to make sure
+ * certain record types are applied at least that interval behind the master.
+ *
+ * Returns true if we waited.
+ *
+ * Note that the delay is calculated between the WAL record log time and
+ * the current time on standby. We would prefer to keep track of when this
+ * standby received each WAL record, which would allow a more consistent
+ * approach and one not affected by time synchronisation issues, but that
+ * is significantly more effort and complexity for little actual gain in
+ * usability.
+ */
+static bool RecoveryApplyDelay(const XLogReaderState* record, TimestampTz& xtime)
+{
+    uint8 info;
+    long secs;
+    int microsecs;
+    long waitTime = 0;
+    TimestampTz* recoveryDelayUntilTime = NULL;
+
+    /* nothing to do if no delay configured or nothing to do if crash recovery is requested */
+    if (!t_thrd.xlog_cxt.InRecovery || (u_sess->attr.attr_storage.recovery_min_apply_delay <= 0) ||
+        !t_thrd.xlog_cxt.ArchiveRecoveryRequested || XLogRecGetRmid(record) != RM_XACT_ID) {
+        return false;
+    }
+
+    KeepWalrecvAliveWhenRecoveryDelay();
+
+    info = XLogRecGetInfo(record) & (~XLR_INFO_MASK);
+    if (info == XLOG_XACT_COMMIT_COMPACT) {
+        xl_xact_commit_compact* xlrec = (xl_xact_commit_compact*)XLogRecGetData(record);
+        xtime = xlrec->xact_time;
+    } else if (info == XLOG_XACT_COMMIT) {
+        xl_xact_commit* xlrec = (xl_xact_commit*)XLogRecGetData(record);
+        xtime = xlrec->xact_time;
+    } else if (info == XLOG_XACT_ABORT || info == XLOG_XACT_ABORT_WITH_XID) {
+        xl_xact_abort* xlrec = (xl_xact_abort*)XLogRecGetData(record);
+        xtime = xlrec->xact_time;
+    } else {
+        return false;
+    }
+
+    recoveryDelayUntilTime = GetDelayUntilTime();
+    Assert(recoveryDelayUntilTime != NULL);
+    *recoveryDelayUntilTime = TimestampTzPlusMilliseconds(xtime, u_sess->attr.attr_storage.recovery_min_apply_delay);
+
+    /* Exit without arming the latch if it's already past time to apply this record */
+    TimestampDifference(GetCurrentTimestamp(), *recoveryDelayUntilTime, &secs, &microsecs);
+    if (secs <= 0 && microsecs <= 0) {
+        return false;
+    }
+
+    while (true) {
+        RecoverDelayLatchOp(LATCH_RESET);
+
+        /* might change the trigger file's location */
+        RedoInterruptCallBack();
+        KeepWalrecvAliveWhenRecoveryDelay();
+        if (CheckForFailoverTrigger() || CheckForSwitchoverTrigger() || CheckForStandbyTrigger()) {
+            break;
+        }
+
+        /* recovery_min_apply_delay maybe change, so we need recalculate recoveryDelayUntilTime */
+        *recoveryDelayUntilTime =
+            TimestampTzPlusMilliseconds(xtime, u_sess->attr.attr_storage.recovery_min_apply_delay);
+
+        /* Wait for difference between GetCurrentTimestamp() and recoveryDelayUntilTime */
+        TimestampDifference(GetCurrentTimestamp(), *recoveryDelayUntilTime, &secs, &microsecs);
+
+        /* NB: We're ignoring waits below min_apply_delay's resolution. */
+        if (secs <= 0 && microsecs / USECS_PER_MSEC <= 0) {
+            break;
+        }
+
+        /* delay 1s every time */
+        waitTime = (secs >= 1) ? MSECS_PER_SEC : (microsecs / USECS_PER_MSEC);
+        RecoverDelayLatchOp(LATCH_WAIT, WL_LATCH_SET | WL_TIMEOUT, waitTime);
+    }
+    return true;
+}
+
 void EndDispatcherContext()
 {
     if (IsExtremeRedo()) {
@@ -335,7 +465,7 @@ void CountXLogNumbers(XLogReaderState *record)
 
     if (record->max_block_id >= 0) {
         (void)pg_atomic_add_fetch_u64(&g_instance.comm_cxt.predo_cxt.xlogStatics[rm_id][info].extra_num,
-            record->readblocks);
+                                      record->readblocks);
     } else if (rm_id == RM_XACT_ID) {
         ColFileNode *xnodes = NULL;
         int nrels = 0;
@@ -393,9 +523,24 @@ void DiagLogRedoRecord(XLogReaderState *record, const char *funcName)
     pfree_ext(buf.data);
 }
 
-void ApplyRedoRecord(XLogReaderState *record)
+void ApplyRedoRecord(XLogReaderState* record)
 {
+    TimestampTz xtime = 0;
     ErrorContextCallback errContext;
+    bool ret = false;
+
+    if (ENABLE_DMS && !SS_PERFORMING_SWITCHOVER && XLogRecGetRmid(record) == RM_XACT_ID) {
+        ret = SSRecoveryApplyDelay();
+    } else {
+        ret = RecoveryApplyDelay(record, xtime);
+    }
+    if (ret) {
+        volatile XLogCtlData* xlogctl = t_thrd.shemem_ptr_cxt.XLogCtl;
+        if (xlogctl->recoveryPause) {
+            RecoveryPausesHere();
+        }
+    }
+
     errContext.callback = rm_redo_error_callback;
     errContext.arg = (void *)record;
     errContext.previous = t_thrd.log_cxt.error_context_stack;
@@ -404,7 +549,8 @@ void ApplyRedoRecord(XLogReaderState *record)
         DiagLogRedoRecord(record, "ApplyRedoRecord");
     }
     RmgrTable[XLogRecGetRmid(record)].rm_redo(record);
-
+    if (xtime != 0) {
+        SetLatestXTime(xtime);
+    }
     t_thrd.log_cxt.error_context_stack = errContext.previous;
 }
-

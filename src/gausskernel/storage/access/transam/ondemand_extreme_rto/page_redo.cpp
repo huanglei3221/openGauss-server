@@ -164,6 +164,31 @@ RefOperate recordRefOperate = {
     AddRecordReadBlocks,
 };
 
+typedef void (*latch_op_fun)(volatile Latch* latch);
+
+static latch_op_fun g_latch_op[LATCH_WAIT] = {InitSharedLatch, SetLatch, ResetLatch, OwnLatch, DisownLatch};
+
+void delay_lactch_op(int op, int wakeEvents, long waitTime)
+{
+    if (g_redoWorker == NULL || op > LATCH_WAIT || op < LATCH_INIT) {
+        return;
+    }
+
+    if (op >= LATCH_INIT && op < LATCH_WAIT) {
+        (*(g_latch_op[op]))(&g_redoWorker->recoveryWakeupDelayLatch);
+    } else {
+        WaitLatch(&g_redoWorker->recoveryWakeupDelayLatch, wakeEvents, waitTime);
+    }
+}
+
+TimestampTz* get_recovery_delay_untiltime(void)
+{
+    if (g_redoWorker != NULL) {
+        return &(g_redoWorker->recoveryDelayUntilTime);
+    }
+    return NULL;
+}
+
 static void OndemandUpdateXLogParseMemUsedBlkNum()
 {
     uint32 usedblknum = 0;
@@ -287,6 +312,8 @@ PageRedoWorker *CreateWorker(uint32 id, bool inRealtimeBuild)
     worker->nextPrunePtr = InvalidXLogRecPtr;
     worker->inRealtimeBuild = inRealtimeBuild;
     worker->currentHtabBlockNum = 0;
+    InitSharedLatch(&worker->recoveryWakeupDelayLatch);
+
     return worker;
 }
 
@@ -3873,8 +3900,10 @@ void ParallelRedoThreadMain()
     InitRecoveryLockHash();
     WaitStateNormal();
     EnableSyncRequestForwarding();
+    RecoverDelayLatchOp(LATCH_OWN);
 
     int retCode = RedoMainLoop();
+    RecoverDelayLatchOp(LATCH_DISOWN);
     StandbyReleaseAllLocks();
     ResourceManagerStop();
     ereport(LOG, (errmsg("Page-redo-worker thread %u terminated, role:%u, slotId:%u, retcode %u.", g_redoWorker->id,

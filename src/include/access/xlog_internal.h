@@ -283,5 +283,6 @@ extern int XLogPageRead(XLogReaderState *xlogreader, XLogRecPtr targetPagePtr, i
 
 bool XLogReadFromWriteBuffer(XLogRecPtr targetStartPtr, int reqLen, char* readBuf, uint32 *rereadlen);
 extern void handleRecoverySusPend(XLogRecPtr lsn);
-
+extern void KeepWalrecvAliveWhenRecoveryDelay(void);
+extern void RecoveryPausesHere(void);
 #endif /* XLOG_INTERNAL_H */

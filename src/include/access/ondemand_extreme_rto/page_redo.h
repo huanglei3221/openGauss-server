@@ -214,6 +214,8 @@ struct PageRedoWorker {
     uint32 currentHtabBlockNum;
     XLogRecPtr lastQueueTopReadRecPtr;
     XLogRecPtr lastQueueTopEndRecPtr;
+    Latch recoveryWakeupDelayLatch;
+    TimestampTz recoveryDelayUntilTime;
 };
 
 
@@ -291,5 +293,7 @@ bool SSXLogParseRecordNeedReplayInOndemandRealtimeBuild(XLogRecParseState *redob
 void SetQueueTopReadEndPtr(PageRedoWorker *worker, XLogRecPtr readPtr, XLogRecPtr endPtr);
 void GetQueueTopReadEndPtr(PageRedoWorker *worker, XLogRecPtr *readPtr, XLogRecPtr *endPtr);
 
+void delay_lactch_op(int op, int wakeEvents, long waitTime);
+TimestampTz* get_recovery_delay_untiltime(void);
 }  // namespace ondemand_extreme_rto
 #endif

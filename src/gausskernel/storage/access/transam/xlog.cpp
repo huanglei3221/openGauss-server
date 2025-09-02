@@ -359,9 +359,9 @@ static void readRecoveryCommandFile(void);
 static XLogSegNo GetOldestXLOGSegNo(const char *workingPath);
 static void exitArchiveRecovery(TimeLineID endTLI, XLogSegNo endSegNo);
 static bool recoveryStopsHere(XLogReaderState *record, bool *includeThis);
-static void recoveryPausesHere(void);
+void RecoveryPausesHere(void);
 #ifndef ENABLE_MULTIPLE_NODES
-static bool RecoveryApplyDelay(const XLogReaderState *record);
+static bool CheckApplyDelayReady(void);
 #endif
 static void SetCurrentChunkStartTime(TimestampTz xtime);
 static void CheckRequiredParameterValues(bool DBStateShutdown);
@@ -6838,9 +6838,7 @@ void XLOGShmemInit(void)
     InitSharedLatch(&t_thrd.shemem_ptr_cxt.XLogCtl->dataRecoveryLatch);
 
     /* recovery_min_apply_delay is SIGHUP level, so init recoveryWakeupDelayLatch if extremeRto mode*/
-    if (IsExtremeRedo()) {
-        InitSharedLatch(&t_thrd.shemem_ptr_cxt.XLogCtl->recoveryWakeupDelayLatch);
-    }
+    RecoverDelayLatchOp(LATCH_INIT);
 
     if (g_instance.smb_cxt.use_smb) {
         InitSharedLatch(&t_thrd.shemem_ptr_cxt.XLogCtl->SMBWakeupLatch);
@@ -8113,7 +8111,9 @@ static bool recoveryStopsHere(XLogReaderState *record, bool *includeThis)
         return true;
 #endif
     } else if (XLogRecGetRmid(record) == RM_XACT_ID) {
-        SetLatestXTime(recordXtime);
+        if (stopsHere && CheckApplyDelayReady()) {
+            SetLatestXTime(recordXtime);
+        }
     }
 
     return stopsHere;
@@ -8148,7 +8148,7 @@ void SetRecoverySuspend(bool recoverySuspend)
  * Probably not worth the trouble though.  This state shouldn't be one that
  * anyone cares about server power consumption in.
  */
-static void recoveryPausesHere(void)
+void RecoveryPausesHere(void)
 {
     /* Don't pause unless users can connect! */
     if (!t_thrd.xlog_cxt.LocalHotStandbyActive) {
@@ -8207,7 +8207,7 @@ static bool CheckApplyDelayReady(void)
     return true;
 }
 
-static void KeepWalrecvAliveWhenRecoveryDelay()
+void KeepWalrecvAliveWhenRecoveryDelay(void)
 {
     static TimestampTz lastTestWalrecvTime = (TimestampTz)0;
 
@@ -8228,96 +8228,6 @@ static void KeepWalrecvAliveWhenRecoveryDelay()
     /* wake up walrecv by pre-parse thread */
     g_instance.csn_barrier_cxt.pre_parse_started = false;
 }
-
-/*
- * When recovery_min_apply_delay is set, we wait long enough to make sure
- * certain record types are applied at least that interval behind the master.
- *
- * Returns true if we waited.
- *
- * Note that the delay is calculated between the WAL record log time and
- * the current time on standby. We would prefer to keep track of when this
- * standby received each WAL record, which would allow a more consistent
- * approach and one not affected by time synchronisation issues, but that
- * is significantly more effort and complexity for little actual gain in
- * usability.
- */
-static bool RecoveryApplyDelay(const XLogReaderState *record)
-{
-    uint8 xactInfo;
-    TimestampTz xtime;
-    long secs;
-    int microsecs;
-    long waitTime = 0;
-
-    if (!CheckApplyDelayReady()) {
-        return false;
-    }
-
-    KeepWalrecvAliveWhenRecoveryDelay();
-
-    /*
-     * Is it a COMMIT record?
-     * We deliberately choose not to delay aborts since they have no effect on
-     * MVCC. We already allow replay of records that don't have a timestamp,
-     * so there is already opportunity for issues caused by early conflicts on
-     * standbys
-     */
-    if (XLogRecGetRmid(record) != RM_XACT_ID) {
-        return false;
-    }
-
-    xactInfo = XLogRecGetInfo(record) & (~XLR_INFO_MASK);
-    if ((xactInfo == XLOG_XACT_COMMIT) || (xactInfo == XLOG_STANDBY_CSN_COMMITTING)) {
-        xtime = ((xl_xact_commit *)XLogRecGetData(record))->xact_time;
-    } else if (xactInfo == XLOG_XACT_COMMIT_COMPACT) {
-        xtime = ((xl_xact_commit_compact *)XLogRecGetData(record))->xact_time;
-    } else {
-        return false;
-    }
-
-    u_sess->attr.attr_storage.recoveryDelayUntilTime =
-        TimestampTzPlusMilliseconds(xtime, u_sess->attr.attr_storage.recovery_min_apply_delay);
-
-    /* Exit without arming the latch if it's already past time to apply this record */
-    TimestampDifference(GetCurrentTimestamp(), u_sess->attr.attr_storage.recoveryDelayUntilTime, &secs, &microsecs);
-    if (secs <= 0 && microsecs <= 0) {
-        return false;
-    }
-
-    while (true) {
-        ResetRecoveryDelayLatch();
-
-        /* might change the trigger file's location */
-        RedoInterruptCallBack();
-
-        KeepWalrecvAliveWhenRecoveryDelay();
-
-        if (CheckForFailoverTrigger() || CheckForSwitchoverTrigger() || CheckForStandbyTrigger()) {
-            break;
-        }
-        
-        /* recovery_min_apply_delay maybe change, so we need recalculate recoveryDelayUntilTime */
-        u_sess->attr.attr_storage.recoveryDelayUntilTime =
-            TimestampTzPlusMilliseconds(xtime, u_sess->attr.attr_storage.recovery_min_apply_delay);
-
-        /* Wait for difference between GetCurrentTimestamp() and recoveryDelayUntilTime */
-        TimestampDifference(GetCurrentTimestamp(), u_sess->attr.attr_storage.recoveryDelayUntilTime, &secs, &microsecs);
-
-        /* To clear LSNMarker item that has not been processed  in  pageworker */
-        ProcTxnWorkLoad(false);
-
-        /* NB: We're ignoring waits below min_apply_delay's resolution. */
-        if (secs <= 0 && microsecs / 1000 <= 0) {
-            break;
-        }
-
-        /* delay 1s every time */
-        waitTime = (secs >= 1) ? 1000 : (microsecs / 1000);
-        WaitRecoveryDelayLatch(waitTime);
-    }
-    return true;
-}
 #endif
 
 /*
@@ -8333,7 +8243,9 @@ void SetLatestXTime(TimestampTz xtime)
     volatile XLogCtlData *xlogctl = t_thrd.shemem_ptr_cxt.XLogCtl;
 
     SpinLockAcquire(&xlogctl->info_lck);
-    xlogctl->recoveryLastXTime = xtime;
+    if (xlogctl->recoveryLastXTime < xtime) {
+        xlogctl->recoveryLastXTime = xtime;
+    }
     SpinLockRelease(&xlogctl->info_lck);
 }
 
@@ -9307,6 +9219,8 @@ static TimestampTz getRecordTimestamp(XLogReaderState* record)
         } else if ((xactInfo == XLOG_XACT_ABORT) || (xactInfo == XLOG_XACT_ABORT_PREPARED) ||
                    (xactInfo == XLOG_XACT_ABORT_WITH_XID)) {
             xtime = ((xl_xact_commit*)XLogRecGetData(record))->xact_time;
+        } else {
+            xtime = GetLatestXTime();
         }
     }
 
@@ -9613,9 +9527,7 @@ void StartupXLOG(void)
     if (t_thrd.xlog_cxt.StandbyModeRequested) {
         OwnLatch(&t_thrd.shemem_ptr_cxt.XLogCtl->recoveryWakeupLatch);
         OwnLatch(&t_thrd.shemem_ptr_cxt.XLogCtl->dataRecoveryLatch);
-        if (IsExtremeRedo()) {
-            OwnLatch(&t_thrd.shemem_ptr_cxt.XLogCtl->recoveryWakeupDelayLatch);
-        }
+        RecoverDelayLatchOp(LATCH_OWN);
     }
 
     /* Set up XLOG reader facility */
@@ -10501,7 +10413,7 @@ void StartupXLOG(void)
                  * adding another spinlock cycle to prevent that.
                  */
                 if (xlogctl->recoveryPause) {
-                    recoveryPausesHere();
+                    RecoveryPausesHere();
                 }
                 GetRedoStartTime(t_thrd.xlog_cxt.timeCost[TIME_COST_STEP_2]);
                 // Have we reached our recovery target?
@@ -10516,36 +10428,6 @@ void StartupXLOG(void)
                          (t_thrd.xlog_cxt.recoveryTarget != RECOVERY_TARGET_TIME_OBS)))) {
                         ExtremeWaitAllRedoWorkerQueueEmpty();
                         break;
-                    }
-                }
-
-#ifndef ENABLE_MULTIPLE_NODES
-                CountAndGetRedoTime(t_thrd.xlog_cxt.timeCost[TIME_COST_STEP_2],
-                    t_thrd.xlog_cxt.timeCost[TIME_COST_STEP_3]);
-                /*
-                 * If we've been asked to lag the master, wait on latch until
-                 * enough time has passed.
-                 */
-                if (RecoveryApplyDelay(xlogreader)) {
-                    /*
-                     * We test for paused recovery again here. If user sets
-                     * delayed apply, it may be because they expect to pause
-                     * recovery in case of problems, so we must test again
-                     * here otherwise pausing during the delay-wait wouldn't
-                     * work.
-                     */
-                    if (xlogctl->recoveryPause) {
-                        recoveryPausesHere();
-                    }
-                }
-                CountRedoTime(t_thrd.xlog_cxt.timeCost[TIME_COST_STEP_3]);
-#else
-                CountRedoTime(t_thrd.xlog_cxt.timeCost[TIME_COST_STEP_2]);
-#endif
-                
-                if (ENABLE_DMS && !SS_PERFORMING_SWITCHOVER && SSRecoveryApplyDelay()) {
-                    if (xlogctl->recoveryPause) {
-                        recoveryPausesHere();
                     }
                 }
 
@@ -10582,9 +10464,6 @@ void StartupXLOG(void)
                 }
                 /* get xtime from xlog record */
                 xtime = getRecordTimestamp(xlogreader);
-                if (xtime == 0) {
-                    xtime = GetLatestXTime();
-                }
                 XLogReaderState *newXlogReader = xlogreader;
                 if (xlogreader->isPRProcess && !IsExtremeRedo()) {
                     newXlogReader = parallel_recovery::NewReaderState(xlogreader);
@@ -10660,7 +10539,7 @@ void StartupXLOG(void)
                 }
                 if (t_thrd.xlog_cxt.recoveryPauseAtTarget && reachedStopPoint) {
                     SetRecoveryPause(true);
-                    recoveryPausesHere();
+                    RecoveryPausesHere();
                 }
             }
             /* redo finished, we set is_recovery_done to true for query */
@@ -10783,9 +10662,7 @@ void StartupXLOG(void)
             DisownLatch(&t_thrd.shemem_ptr_cxt.XLogCtl->recoveryWakeupLatch);
         }
         DisownLatch(&t_thrd.shemem_ptr_cxt.XLogCtl->dataRecoveryLatch);
-        if (IsExtremeRedo()) {
-            DisownLatch(&t_thrd.shemem_ptr_cxt.XLogCtl->recoveryWakeupDelayLatch);
-        }
+        RecoverDelayLatchOp(LATCH_DISOWN);
     }
 
     /*
@@ -18717,8 +18594,8 @@ bool CheckSwitchoverTimeoutSignal(void)
 void WakeupRecovery(void)
 {
     SetLatch(&t_thrd.shemem_ptr_cxt.XLogCtl->recoveryWakeupLatch);
-    if (IsExtremeRedo() && u_sess->attr.attr_storage.recovery_min_apply_delay > 0) {
-        SetLatch(&t_thrd.shemem_ptr_cxt.XLogCtl->recoveryWakeupDelayLatch);
+    if (u_sess->attr.attr_storage.recovery_min_apply_delay > 0) {
+        RecoverDelayLatchOp(LATCH_SET);
     }
 }
 
@@ -19353,11 +19230,8 @@ void ReLeaseRecoveryLatch()
  * Reset latch before startup process delay recovery.
  */
 void ResetRecoveryDelayLatch() {
-    if (IsExtremeRedo()) {
-        ResetLatch(&t_thrd.shemem_ptr_cxt.XLogCtl->recoveryWakeupDelayLatch);
-    } else {
-        ResetLatch(&t_thrd.shemem_ptr_cxt.XLogCtl->recoveryWakeupLatch);
-    }
+    RecoverDelayLatchOp(LATCH_RESET);
+    ResetLatch(&t_thrd.shemem_ptr_cxt.XLogCtl->recoveryWakeupLatch);
 }
 
 /**
