@@ -2119,7 +2119,7 @@ void TruncateMultiXact(MultiXactId oldestMXact)
         offptr += entryno;
         oldestOffset = *offptr;
 
-        LWLockRelease(MultiXactOffsetControlLock);
+        LWLockRelease(SimpleLruGetBankLock(t_thrd.shemem_ptr_cxt.MultiXactOffsetCtl, pageno));
     }
 
     /* truncate MultiXactOffset */
