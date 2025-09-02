@@ -314,6 +314,8 @@ HINT:  To enable inserting into the view, provide an INSTEAD OF INSERT trigger o
 -- default values not allowed
 INSERT INTO (SELECT mgr FROM emp) e DEFAULT VALUES;
 ERROR:  INSERT ... DEFAULT VALUES is not supported for subquery "e"
+INSERT INTO (SELECT mgr FROM emp) e VALUES (DEFAULT);
+ERROR:  inserting default value is not supported for subquery "e"
 UPDATE (SELECT mgr FROM emp) e SET mgr = DEFAULT;
 ERROR:  SET TO DEFAULT is not supported for subquery "e"
 -- ambiguous column reference

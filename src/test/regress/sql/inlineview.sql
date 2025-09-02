@@ -150,6 +150,7 @@ VALUES (6);
 
 -- default values not allowed
 INSERT INTO (SELECT mgr FROM emp) e DEFAULT VALUES;
+INSERT INTO (SELECT mgr FROM emp) e VALUES (DEFAULT);
 UPDATE (SELECT mgr FROM emp) e SET mgr = DEFAULT;
 
 -- ambiguous column reference
