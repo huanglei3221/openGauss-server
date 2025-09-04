@@ -2366,38 +2366,20 @@ static ArrayType* array_index_delete_internal(ArrayType* v, HTAB* table_index, O
 }
 
 static ArrayType* array_index_delete_internal_db_a(ArrayType* v, HTAB* table_index,
-		  Oid tableOfIndexType, Datum index_datum, Datum index_datum2, bool multi_args)
+		  Oid tableOfIndexType, Datum index_datum)
 {
     TableOfIndexKey key;
     key.exprtypeid = tableOfIndexType;
     key.exprdatum = index_datum;
-    TableOfIndexKey key2;
-    key2.exprtypeid = tableOfIndexType;
-    key2.exprdatum = index_datum2;
     PLpgSQL_var* var = NULL;
-    PLpgSQL_var* var2 = NULL;
     ArrayType* array = NULL;
     bool found = false;
     int index = 0;
-    int index2 = 0;
     index = getTableOfIndexByDatumValue(key, table_index, &var);
     if (index < 0) {
         return v;
     }
-    if (multi_args) {
-        index2 = getTableOfIndexByDatumValue(key2, table_index, &var2);
-        if (index2 < 0 || index2 < index) {
-            return v;
-        }
-        if (tableOfIndexType == VARCHAROID) {
-            array = array_deleteidx_internal_db_a(v, index, -1, false);
-            array = array_deleteidx_internal_db_a(v, index2, -1, false);
-        } else {
-            array = array_deleteidx_internal_db_a(v, index, index2, true);
-        }
-    } else {
-        array = array_deleteidx_internal_db_a(v, index, -1, false);
-    }
+    array = array_deleteidx_internal_db_a(v, index, -1, false);
 
     (void)hash_search(table_index, (const void*)&key, HASH_REMOVE, &found);
 
@@ -2411,9 +2393,7 @@ static ArrayType* array_index_delete_internal_db_a(ArrayType* v, HTAB* table_ind
                 DatumGetArrayTypeP(var->value),
                 var->tableOfIndex,
                 var->tableOfIndexType,
-                srcEntry->key.exprdatum,
-                NULL,
-                false);
+                srcEntry->key.exprdatum);
         }
     }
 
@@ -2453,7 +2433,7 @@ Datum array_integer_deleteidx(PG_FUNCTION_ARGS)
     PG_RETURN_ARRAYTYPE_P(array);
 }
 
-static ArrayType* array_integer_deleteidx_db_a_inner(ArrayType* v, Datum index_datum, Datum index_datum2, bool is_multi)
+static ArrayType* array_integer_deleteidx_db_a_inner(ArrayType* v, Datum index_datum)
 {
     if (u_sess->SPI_cxt.cur_tableof_index == NULL ||
         u_sess->SPI_cxt.cur_tableof_index->tableOfIndex == NULL) {
@@ -2465,7 +2445,7 @@ static ArrayType* array_integer_deleteidx_db_a_inner(ArrayType* v, Datum index_d
     ArrayType* array = array_index_delete_internal_db_a(v,
                                                         u_sess->SPI_cxt.cur_tableof_index->tableOfIndex,
                                                         u_sess->SPI_cxt.cur_tableof_index->tableOfIndexType,
-                                                        index_datum, index_datum2, is_multi);
+                                                        index_datum);
     pthread_rwlock_unlock(&u_sess->SPI_cxt.cur_tableof_index->tableOfIndexLock);
     return array;
 }
@@ -2482,7 +2462,7 @@ Datum array_integer_deleteidx_db_a(PG_FUNCTION_ARGS)
         PG_RETURN_ARRAYTYPE_P(v);
     }
     Datum index_datum = PG_GETARG_DATUM(1);
-    ArrayType* array = array_integer_deleteidx_db_a_inner(v, index_datum, (Datum)0, false);
+    ArrayType* array = array_integer_deleteidx_db_a_inner(v, index_datum);
     PG_RETURN_ARRAYTYPE_P(array);
 }
 
@@ -2492,15 +2472,10 @@ Datum array_integer_multi_deleteidx_db_a(PG_FUNCTION_ARGS)
     if (PG_ARGISNULL(0)) {
         PG_RETURN_NULL();
     }
-    ArrayType* v = PG_GETARG_ARRAYTYPE_P(0);
-    /* Sanity check: does it look like an array at all */
-    if (ARR_NDIM(v) <= 0 || ARR_NDIM(v) > MAXDIM) {
-        PG_RETURN_ARRAYTYPE_P(v);
-    }
-    Datum index_datum = PG_GETARG_DATUM(1);
-    Datum index_datum2 = PG_GETARG_DATUM(2);
-    ArrayType* array = array_integer_deleteidx_db_a_inner(v, index_datum, index_datum2, true);
-    PG_RETURN_ARRAYTYPE_P(array);
+    ereport(ERROR,
+        (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+            errmsg("Arrays with index currently do not support DELETE (X, Y).")));
+    PG_RETURN_NULL();
 }
 
 Datum array_varchar_deleteidx(PG_FUNCTION_ARGS)
@@ -2540,10 +2515,9 @@ Datum array_varchar_deleteidx(PG_FUNCTION_ARGS)
     PG_RETURN_ARRAYTYPE_P(array);
 }
 
-static ArrayType* array_varchar_deleteidx_db_a_inner(ArrayType* v, Datum index_datum, Datum index_datum2, bool is_multi)
+static ArrayType* array_varchar_deleteidx_db_a_inner(ArrayType* v, Datum index_datum)
 {
     bool isTran1 = false;
-    bool isTran2 = false;
 
     if (u_sess->SPI_cxt.cur_tableof_index == NULL ||
         u_sess->SPI_cxt.cur_tableof_index->tableOfIndex == NULL) {
@@ -2555,21 +2529,14 @@ static ArrayType* array_varchar_deleteidx_db_a_inner(ArrayType* v, Datum index_d
         index_datum = transVaratt1BTo4B(index_datum);
         isTran1 = true;
     }
-    if (is_multi && VARATT_IS_1B(index_datum2)) {
-        index_datum2 = transVaratt1BTo4B(index_datum2);
-        isTran2 = true;
-    }
     pthread_rwlock_wrlock(&u_sess->SPI_cxt.cur_tableof_index->tableOfIndexLock);
     ArrayType* array = array_index_delete_internal_db_a(v,
                                                         u_sess->SPI_cxt.cur_tableof_index->tableOfIndex,
                                                         u_sess->SPI_cxt.cur_tableof_index->tableOfIndexType,
-                                                        index_datum, index_datum2, is_multi);
+                                                        index_datum);
     pthread_rwlock_unlock(&u_sess->SPI_cxt.cur_tableof_index->tableOfIndexLock);
     if (isTran1) {
         pfree(DatumGetPointer(index_datum));
-    }
-    if (isTran2) {
-        pfree(DatumGetPointer(index_datum2));
     }
     return array;
 }
@@ -2586,7 +2553,7 @@ Datum array_varchar_deleteidx_db_a(PG_FUNCTION_ARGS)
         PG_RETURN_ARRAYTYPE_P(v);
     }
     Datum index_datum = PG_GETARG_DATUM(1);
-    ArrayType* array = array_varchar_deleteidx_db_a_inner(v, index_datum, (Datum)0, false);
+    ArrayType* array = array_varchar_deleteidx_db_a_inner(v, index_datum);
     PG_RETURN_ARRAYTYPE_P(array);
 }
 
@@ -2596,15 +2563,10 @@ Datum array_varchar_multi_deleteidx_db_a(PG_FUNCTION_ARGS)
     if (PG_ARGISNULL(0)) {
         PG_RETURN_NULL();
     }
-    ArrayType* v = PG_GETARG_ARRAYTYPE_P(0);
-    /* Sanity check: does it look like an array at all */
-    if (ARR_NDIM(v) <= 0 || ARR_NDIM(v) > MAXDIM) {
-        PG_RETURN_ARRAYTYPE_P(v);
-    }
-    Datum index_datum = PG_GETARG_DATUM(1);
-    Datum index_datum2 = PG_GETARG_DATUM(2);
-    ArrayType* array = array_varchar_deleteidx_db_a_inner(v, index_datum, index_datum2, true);
-    PG_RETURN_ARRAYTYPE_P(array);
+    ereport(ERROR,
+        (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+            errmsg("Arrays with index currently do not support DELETE (X, Y).")));
+    PG_RETURN_NULL();
 }
 
 /*

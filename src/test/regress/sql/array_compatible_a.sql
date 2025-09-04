@@ -15,6 +15,70 @@ BEGIN
 END;
 /
 
+declare
+  type num_type is table of int index by int;
+  nt num_type := num_type();
+begin
+  nt(-1):=16;
+  nt(-2):=87;
+  nt(0):=13;
+  nt(1):=11;
+  nt(2):=22;
+  nt(3):=33;
+  nt(4):=44;
+
+  nt.delete(-2,3);
+  raise notice '%',nt(-2);
+  raise notice '%',nt(-1);
+  raise notice '%',nt(0);
+  raise notice '%',nt(1);
+  raise notice '%',nt(2);
+  raise notice '%',nt(3);
+  raise notice '%',nt(4);
+end;
+/
+
+declare
+  type num_type is table of int index by int;
+  nt num_type := num_type();
+begin
+  nt(-1):=16;
+  nt(4):=44;
+  nt(-2):=87;
+  nt(1):=11;
+  nt(0):=13;
+  nt(2):=22;
+  nt(3):=33;
+  
+
+  nt.delete(4,1);
+  raise notice '%',nt(-2);
+  raise notice '%',nt(-1);
+  raise notice '%',nt(0);
+  raise notice '%',nt(1);
+  raise notice '%',nt(2);
+  raise notice '%',nt(3);
+  raise notice '%',nt(4);
+end;
+/
+
+declare
+  type num_type is table of int index by int;
+  nt num_type := num_type();
+begin
+  nt(-1):=16;
+  nt(-2):=87;
+  nt(0):=13;
+  nt(1):=11;
+
+  nt.delete(-5,3);
+  raise notice '%',nt(-2);
+  raise notice '%',nt(-1);
+  raise notice '%',nt(0);
+  raise notice '%',nt(1);
+end;
+/
+
 DECLARE
   TYPE n1 IS varray(20) OF NUMBER;
   nt n1 := n1(11, 22, 33, 44, 55, 66);
@@ -353,3 +417,201 @@ BEGIN
 END;
 /
 call proc1();
+drop PROCEDURE if exists proc1;
+
+create or replace procedure proc2 is
+  type t1 is record(c1 int,c2 int);
+  type t2 is table of t1;
+  type t3 is varray(10) of t1;
+  nt t3 := t3();
+begin
+  nt(1):=(5,6);
+  nt(2):=(15,46);
+  nt(3):=(35,76);
+  nt(4):=(55,56);
+
+  nt.delete(1);
+  raise notice '%',nt(1);
+  raise notice '%',nt(2);
+  raise notice '%',nt(3);
+  raise notice '%',nt(4);
+end;
+/
+call proc2();
+drop PROCEDURE if exists proc2;
+
+create or replace procedure proc3 is
+  type t2 is table of int;
+  type t1 is record(c1 int,c2 t2);
+  type t3 is varray(10) of t1;
+  nt t3 := t3();
+  t2_0 t2 := t2(4,6);
+  t2_1 t2 := t2(14,16);
+  t2_2 t2 := t2(15,66);
+begin
+  nt(1):=(5,t2_0);
+  nt(2):=(15,t2_1);
+  nt(3):=(35,t2_2);
+  nt(4):=(55,t2_0);
+
+  nt.delete(1);
+  raise notice '%',nt(1).c2;
+  raise notice '%',nt(2).c2;
+  raise notice '%',nt(3).c2;
+  raise notice '%',nt(4).c2;
+end;
+/
+call proc3();
+drop PROCEDURE if exists proc3;
+
+create or replace procedure proc4 is
+  type t2 is table of int;
+  type t1 is record(c1 int,c2 t2);
+  type t3 is varray(10) of t1;
+  nt t3 := t3();
+  t2_0 t2 := t2(4,6);
+  t2_1 t2 := t2(14,16);
+  t2_2 t2 := t2(15,66);
+begin
+  nt(1):=(5,t2_0);
+  nt(2):=(15,t2_1);
+  nt(3):=(35,t2_2);
+  nt(4):=(55,t2_0);
+
+  nt.delete(1);
+  raise notice '%',nt(1).c2;
+  raise notice '%',nt(2).c2;
+  raise notice '%',nt(3).c2;
+  raise notice '%',nt(4).c2;
+end;
+/
+call proc4();
+drop PROCEDURE if exists proc4;
+
+create or replace procedure proc5 is
+  type t2 is table of int;
+  type t1 is record(c1 int,c2 t2);
+  type t3 is varray(10) of t1;
+  nt t3 := t3();
+  t2_0 t2 := t2(4,6);
+  t2_1 t2 := t2(14,16);
+  t2_2 t2 := t2(15,66);
+begin
+  nt(1):=(5,t2_0);
+  nt(2):=(15,t2_1);
+  nt(3):=(35,t2_2);
+  nt(4):=(55,t2_0);
+
+  nt.c2.delete(1);
+  raise notice '%',nt(1);
+  raise notice '%',nt(2);
+  raise notice '%',nt(3);
+  raise notice '%',nt(4);
+end;
+/
+call proc5();
+drop PROCEDURE if exists proc5;
+
+create or replace procedure proc6 is
+  type t2 is table of int;
+  type t1 is record(c1 int,c2 t2);
+  type t3 is varray(10) of t1;
+  t2_0 t2 := t2(4,6);
+  t2_1 t2 := t2(14,16);
+  t2_2 t2 := t2(15,66);
+  nt t3 := t3((5,t2_0), (15,t2_1),(35,t2_2),(55,t2_0));
+begin
+  nt.delete(1);
+  raise notice '%',nt(1).c2;
+  raise notice '%',nt(2).c2;
+  raise notice '%',nt(3).c2;
+  raise notice '%',nt(4).c2;
+end;
+/
+call proc6();
+drop PROCEDURE if exists proc6;
+
+create or replace procedure proc7 is
+  type t2 is varray(10) of int;
+  type t1 is varray(10) of t2;
+  type t3 is varray(10) of t1;
+  t2_0 t2 := t2(4,6);
+  t2_1 t2 := t2(14,16);
+  t2_2 t2 := t2(15,66);
+  t2_3 t2 := t2(41,61);
+  t2_4 t2 := t2(24,13);
+  t2_5 t2 := t2(25,69);
+  t1_1 t1 := t1(t2_0, t2_1);
+  t1_2 t1 := t1(t2_2, t2_3);
+  t1_3 t1 := t1(t2_4, t2_5);
+  nt t3 := t3();
+begin
+  nt(1):= t1_1;
+  nt(2):= t1_2;
+  nt(3):= t1_3;
+  nt.delete(1)(2);
+  raise notice '%',nt(1);
+  raise notice '%',nt(2);
+  raise notice '%',nt(3);
+end;
+/
+call proc7();
+drop PROCEDURE if exists proc7;
+
+create or replace procedure proc8 is
+  type t2 is varray(10) of int;
+  type t1 is varray(10) of t2;
+  type t3 is varray(10) of t1;
+  t2_0 t2 := t2(4,6);
+  t2_1 t2 := t2(14,16);
+  t2_2 t2 := t2(15,66);
+  t2_3 t2 := t2(41,61);
+  t2_4 t2 := t2(24,13);
+  t2_5 t2 := t2(25,69);
+  t1_1 t1 := t1(t2_0, t2_1);
+  t1_2 t1 := t1(t2_2, t2_3);
+  t1_3 t1 := t1(t2_4, t2_5);
+  nt t3 := t3();
+begin
+  nt(1):= t1_1;
+  nt(2):= t1_2;
+  nt(3):= t1_3;
+  nt.delete(2);
+  raise notice '%',nt(1);
+  raise notice '%',nt(2);
+  raise notice '%',nt(3);
+end;
+/
+call proc8();
+drop PROCEDURE if exists proc8;
+
+create or replace procedure proc9 is
+  type t2 is varray(10) of int;
+  type t1 is varray(10) of t2;
+  type t3 is varray(10) of t1;
+  t2_0 t2 := t2(4,6);
+  t2_1 t2 := t2(14,16);
+  t2_2 t2 := t2(15,66);
+  t2_3 t2 := t2(41,61);
+  t2_4 t2 := t2(24,13);
+  t2_5 t2 := t2(25,69);
+  t1_1 t1 := t1(t2_0, t2_1);
+  t1_2 t1 := t1(t2_2, t2_3);
+  t1_3 t1 := t1(t2_4, t2_5);
+  nt t3 := t3();
+begin
+  nt(1):= t1_1;
+  nt(2):= t1_2;
+  nt(3):= t1_3;
+  nt(2).delete(1);
+  raise notice '%',nt(1);
+  raise notice '%',nt(2);
+  raise notice '%',nt(3);
+end;
+/
+call proc9();
+drop PROCEDURE if exists proc9;
+
+DROP TYPE num_type;
+DROP TYPE int_type;
+DROP TYPE char_type;
