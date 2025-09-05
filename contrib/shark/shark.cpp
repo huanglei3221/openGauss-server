@@ -86,7 +86,8 @@ static Oid getVarbinaryOid()
 {
     SharkContext* cxt = GetSessionContext();
     if (cxt->varbinaryOid == InvalidOid) {
-        cxt->varbinaryOid = typenameTypeId(NULL, makeTypeNameFromNameList(list_make2(makeString("sys"), makeString("varbinary"))));
+        cxt->varbinaryOid = typenameTypeId(
+            NULL, makeTypeNameFromNameList(list_make2(makeString("sys"), makeString("varbinary"))));
     }
     return cxt->varbinaryOid;
 }
