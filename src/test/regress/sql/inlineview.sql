@@ -617,81 +617,16 @@ with local check option) r(id, num) values (4, 4);
 drop table base_tbl1 cascade;
 drop table base_tbl2 cascade;
 
-
-
 --- B_Format compatibility
 CREATE DATABASE test_inlineview_b DBCOMPATIBILITY 'B';
 \c test_inlineview_b
 
-create table t_col(c1 int, c2 int default NULL) with (orientation = column);
-insert into t_col values (1, 2);
-create view v1 as select * from t_col;
-delete from v1 returning *;
-update /*+ ignore_error */ v1 set c1 = null where c1 = 2;
-insert /*+ ignore_error */ into t_col values (1);
-INSERT INTO (SELECT * FROM t_col WHERE c1 < 10) t VALUES (3, 2) RETURNING *;
-update (SELECT * FROM t_col WHERE c1 < 10) SET c2 = 3 where c1 = 1 returning *;
-drop view v1;
-drop table t_col;
-
-CREATE TEMPORARY TABLE t0 ( c54 INT , c9 INT ) ;
-INSERT INTO (TABLE t0) t VALUES ( 25 , -8 ) , ( -88 , -77 ) ;
-SELECT * FROM t0;
-DROP TABLE t0;
-
-drop table if exists t_t_mutil_t1;
-drop table if exists t_t_mutil_t2;
-drop table if exists t_t_mutil_t3;
-create table t_t_mutil_t1(col1 int,col2 int);
-create table t_t_mutil_t2(col1 int,col2 int);
-create table t_t_mutil_t3(col1 int,col2 int);
-insert into t_t_mutil_t1 values(1,1),(1,1);
-insert into t_t_mutil_t2 values(1,1),(1,2);
-insert into t_t_mutil_t3 values(1,1),(1,3);
-
--- multi delete
-create view v1 as select * from t_t_mutil_t1;
-begin;
-delete from (select * from v1) a,(select * from t_t_mutil_t2) b where a.col1=b.col1;
-select * from t_t_mutil_t1;
-select * from t_t_mutil_t2;
-rollback;
-
-delete from (table t_t_mutil_t1 union table t_t_mutil_t2);
-delete b from (select * from t_t_mutil_t2) b;
-
--- multi update 
-begin;
-update t_t_mutil_t1 a, (select * from t_t_mutil_t2) b set a.col2=7,b.col2=8 where a.col1=b.col1;
-select * from t_t_mutil_t1;
-select * from t_t_mutil_t2;
-rollback;
-
-begin;
-update (select * from t_t_mutil_t1) col1, (select * from t_t_mutil_t1) col2 set col1.col1 = 7;
-select * from t_t_mutil_t1;
-rollback;
-
-update t_t_mutil_t1 a, (select * from t_t_mutil_t2 b join t_t_mutil_t3 c on b.col1=c.col1) bc set a.col2=7, bc.col2=8;
-update t_t_mutil_t1 a, (select * from t_t_mutil_t2) b set a.col2=7,b.col2=8 where a.col1=b.col1 order by a.col2;
-update t_t_mutil_t1 a, (select * from t_t_mutil_t2) b set a.col2=7,b.col2=8 where a.col1=b.col1 limit 1;
-update t_t_mutil_t1 a, (select * from t_t_mutil_t2) b set a.col2=7,b.col2=8 where a.col1=b.col1 returning *;
-
-create table base_tbl1 (id int, num int);
-create view rw_view1 as select * from base_tbl1 where id > 0;
-
-insert into (select * from rw_view1 where id < 10 with local check option) r values (0); -- ok
-insert into (select * from rw_view1 where id < 10 with local check option) r values (10); -- fail
-insert into (select * from rw_view1 where id < 10 with cascaded check option) r values (0); -- fail
-insert into (select * from rw_view1 where id < 10 with cascaded check option) r values (10); -- fail
 CREATE TABLE base_tbl (a int primary key, b int DEFAULT 10);
 INSERT INTO base_tbl VALUES (1,2), (2,3);
 INSERT INTO (SELECT * FROM base_tbl WHERE a < 10 WITH CHECK OPTION) r VALUES(3,4);
 UPDATE (SELECT * FROM base_tbl WHERE a < 10 WITH CHECK OPTION) r SET b = 5 WHERE a = 3;
+DELETE (TABLE base_tbl);
 drop table if exists base_tbl cascade;
-CREATE TABLE base_tbl (a int primary key, b int DEFAULT 10);
-INSERT INTO base_tbl VALUES (1,2), (8,2), (9,0);
-UPDATE (SELECT * FROM base_tbl WHERE a < 10 WITH CHECK OPTION) r SET a = a + b;
 
 \c regression
 DROP DATABASE test_inlineview;

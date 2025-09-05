@@ -234,6 +234,7 @@ select * from multiblock2.t_d_mutil_bc_2;
 
 -- subquery
 delete from t_t_mutil_t1 a,(select * from t_t_mutil_t2) b where a.col1=b.col1; --error
+ERROR:  UPDATE/DELETE/INSERT through subquery is only supported in A-format database
 -- mateview
 CREATE MATERIALIZED VIEW mate_multiview1 as select * from t_t_mutil_t1;
 CREATE MATERIALIZED VIEW mate_multiview2 as select * from t_t_mutil_t2;

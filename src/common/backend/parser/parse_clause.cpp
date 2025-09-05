@@ -414,6 +414,10 @@ List* setTargetTables(ParseState* pstate, List* relations, bool expandInh, bool 
             rtindex = lappend_int(rtindex,
                 setTargetTable(pstate, relRv, inhOpt, alsoSource, requiredPerms, multiModify));
         } else if (IsA(n, RangeSubselect)) {
+            if (!DB_IS_CMPT(A_FORMAT)) {
+                ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+                    errmsg("UPDATE/DELETE/INSERT through subquery is only supported in A-format database")));
+            }
             RangeSubselect* sub = (RangeSubselect*) n;
             RangeTblEntry* top_rte = NULL;
             List* relnamespace = NIL;
@@ -1204,10 +1208,9 @@ Node* transformFromClauseItem(ParseState* pstate, Node* n, RangeTblEntry** top_r
         rte = transformRangeSubselect(pstate, (RangeSubselect*)n);
         rtr = transformItem(pstate, rte, top_rte, top_rti, relnamespace);
 
-        /* If UPDATE multiple relations in sql_compatibility B, add target table here. */
-        if (addUpdateTable) {
-            setTargetTableForSubquery(pstate, (RangeSubselect*)n, rtr, false, ACL_UPDATE);
-            pstate->p_updateRelations = lappend_int(pstate->p_updateRelations, *top_rti);
+        if (addUpdateTable && !DB_IS_CMPT(A_FORMAT)) {
+            ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+                errmsg("UPDATE/DELETE/INSERT through subquery is only supported in A-format database")));
         }
         /* add startinfo if needed */
         if (pstate->p_addStartInfo) {
