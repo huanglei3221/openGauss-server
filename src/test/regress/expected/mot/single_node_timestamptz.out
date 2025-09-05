@@ -1585,171 +1585,171 @@ SELECT '2014-10-26 02:00:00 MSK'::timestamptz;
 (1 row)
 
 SELECT '2011-03-27 00:00:00'::timestamp AT TIME ZONE 'Europe/Moscow';
-           timezone           
-------------------------------
- Sat Mar 26 21:00:00 2011 UTC
+         timezone         
+--------------------------
+ Sun Mar 27 04:00:00 2011
 (1 row)
 
 SELECT '2011-03-27 01:00:00'::timestamp AT TIME ZONE 'Europe/Moscow';
-           timezone           
-------------------------------
- Sat Mar 26 22:00:00 2011 UTC
+         timezone         
+--------------------------
+ Sun Mar 27 05:00:00 2011
 (1 row)
 
 SELECT '2011-03-27 01:59:59'::timestamp AT TIME ZONE 'Europe/Moscow';
-           timezone           
-------------------------------
- Sat Mar 26 22:59:59 2011 UTC
+         timezone         
+--------------------------
+ Sun Mar 27 05:59:59 2011
 (1 row)
 
 SELECT '2011-03-27 02:00:00'::timestamp AT TIME ZONE 'Europe/Moscow';
-           timezone           
-------------------------------
- Sat Mar 26 23:00:00 2011 UTC
+         timezone         
+--------------------------
+ Sun Mar 27 06:00:00 2011
 (1 row)
 
 SELECT '2011-03-27 02:00:01'::timestamp AT TIME ZONE 'Europe/Moscow';
-           timezone           
-------------------------------
- Sat Mar 26 22:00:01 2011 UTC
+         timezone         
+--------------------------
+ Sun Mar 27 06:00:01 2011
 (1 row)
 
 SELECT '2011-03-27 02:59:59'::timestamp AT TIME ZONE 'Europe/Moscow';
-           timezone           
-------------------------------
- Sat Mar 26 22:59:59 2011 UTC
+         timezone         
+--------------------------
+ Sun Mar 27 06:59:59 2011
 (1 row)
 
 SELECT '2011-03-27 03:00:00'::timestamp AT TIME ZONE 'Europe/Moscow';
-           timezone           
-------------------------------
- Sat Mar 26 23:00:00 2011 UTC
+         timezone         
+--------------------------
+ Sun Mar 27 07:00:00 2011
 (1 row)
 
 SELECT '2011-03-27 03:00:01'::timestamp AT TIME ZONE 'Europe/Moscow';
-           timezone           
-------------------------------
- Sat Mar 26 23:00:01 2011 UTC
+         timezone         
+--------------------------
+ Sun Mar 27 07:00:01 2011
 (1 row)
 
 SELECT '2011-03-27 04:00:00'::timestamp AT TIME ZONE 'Europe/Moscow';
-           timezone           
-------------------------------
- Sun Mar 27 00:00:00 2011 UTC
+         timezone         
+--------------------------
+ Sun Mar 27 08:00:00 2011
 (1 row)
 
 SELECT '2011-03-27 00:00:00'::timestamp AT TIME ZONE 'MSK';
-           timezone           
-------------------------------
- Sat Mar 26 20:00:00 2011 UTC
+         timezone         
+--------------------------
+ Sun Mar 27 04:00:00 2011
 (1 row)
 
 SELECT '2011-03-27 01:00:00'::timestamp AT TIME ZONE 'MSK';
-           timezone           
-------------------------------
- Sat Mar 26 21:00:00 2011 UTC
+         timezone         
+--------------------------
+ Sun Mar 27 05:00:00 2011
 (1 row)
 
 SELECT '2011-03-27 01:59:59'::timestamp AT TIME ZONE 'MSK';
-           timezone           
-------------------------------
- Sat Mar 26 21:59:59 2011 UTC
+         timezone         
+--------------------------
+ Sun Mar 27 05:59:59 2011
 (1 row)
 
 SELECT '2011-03-27 02:00:00'::timestamp AT TIME ZONE 'MSK';
-           timezone           
-------------------------------
- Sat Mar 26 22:00:00 2011 UTC
+         timezone         
+--------------------------
+ Sun Mar 27 06:00:00 2011
 (1 row)
 
 SELECT '2011-03-27 02:00:01'::timestamp AT TIME ZONE 'MSK';
-           timezone           
-------------------------------
- Sat Mar 26 22:00:01 2011 UTC
+         timezone         
+--------------------------
+ Sun Mar 27 06:00:01 2011
 (1 row)
 
 SELECT '2011-03-27 02:59:59'::timestamp AT TIME ZONE 'MSK';
-           timezone           
-------------------------------
- Sat Mar 26 22:59:59 2011 UTC
+         timezone         
+--------------------------
+ Sun Mar 27 06:59:59 2011
 (1 row)
 
 SELECT '2011-03-27 03:00:00'::timestamp AT TIME ZONE 'MSK';
-           timezone           
-------------------------------
- Sat Mar 26 23:00:00 2011 UTC
+         timezone         
+--------------------------
+ Sun Mar 27 07:00:00 2011
 (1 row)
 
 SELECT '2011-03-27 03:00:01'::timestamp AT TIME ZONE 'MSK';
-           timezone           
-------------------------------
- Sat Mar 26 23:00:01 2011 UTC
+         timezone         
+--------------------------
+ Sun Mar 27 07:00:01 2011
 (1 row)
 
 SELECT '2011-03-27 04:00:00'::timestamp AT TIME ZONE 'MSK';
-           timezone           
-------------------------------
- Sun Mar 27 00:00:00 2011 UTC
+         timezone         
+--------------------------
+ Sun Mar 27 08:00:00 2011
 (1 row)
 
 SELECT '2014-10-26 00:00:00'::timestamp AT TIME ZONE 'Europe/Moscow';
-           timezone           
-------------------------------
- Sat Oct 25 20:00:00 2014 UTC
+         timezone         
+--------------------------
+ Sun Oct 26 03:00:00 2014
 (1 row)
 
 SELECT '2014-10-26 00:59:59'::timestamp AT TIME ZONE 'Europe/Moscow';
-           timezone           
-------------------------------
- Sat Oct 25 20:59:59 2014 UTC
+         timezone         
+--------------------------
+ Sun Oct 26 03:59:59 2014
 (1 row)
 
 SELECT '2014-10-26 01:00:00'::timestamp AT TIME ZONE 'Europe/Moscow';
-           timezone           
-------------------------------
- Sat Oct 25 22:00:00 2014 UTC
+         timezone         
+--------------------------
+ Sun Oct 26 04:00:00 2014
 (1 row)
 
 SELECT '2014-10-26 01:00:01'::timestamp AT TIME ZONE 'Europe/Moscow';
-           timezone           
-------------------------------
- Sat Oct 25 22:00:01 2014 UTC
+         timezone         
+--------------------------
+ Sun Oct 26 04:00:01 2014
 (1 row)
 
 SELECT '2014-10-26 02:00:00'::timestamp AT TIME ZONE 'Europe/Moscow';
-           timezone           
-------------------------------
- Sat Oct 25 23:00:00 2014 UTC
+         timezone         
+--------------------------
+ Sun Oct 26 05:00:00 2014
 (1 row)
 
 SELECT '2014-10-26 00:00:00'::timestamp AT TIME ZONE 'MSK';
-           timezone           
-------------------------------
- Sat Oct 25 20:00:00 2014 UTC
+         timezone         
+--------------------------
+ Sun Oct 26 04:00:00 2014
 (1 row)
 
 SELECT '2014-10-26 00:59:59'::timestamp AT TIME ZONE 'MSK';
-           timezone           
-------------------------------
- Sat Oct 25 20:59:59 2014 UTC
+         timezone         
+--------------------------
+ Sun Oct 26 04:59:59 2014
 (1 row)
 
 SELECT '2014-10-26 01:00:00'::timestamp AT TIME ZONE 'MSK';
-           timezone           
-------------------------------
- Sat Oct 25 21:00:00 2014 UTC
+         timezone         
+--------------------------
+ Sun Oct 26 05:00:00 2014
 (1 row)
 
 SELECT '2014-10-26 01:00:01'::timestamp AT TIME ZONE 'MSK';
-           timezone           
-------------------------------
- Sat Oct 25 21:00:01 2014 UTC
+         timezone         
+--------------------------
+ Sun Oct 26 05:00:01 2014
 (1 row)
 
 SELECT '2014-10-26 02:00:00'::timestamp AT TIME ZONE 'MSK';
-           timezone           
-------------------------------
- Sat Oct 25 22:00:00 2014 UTC
+         timezone         
+--------------------------
+ Sun Oct 26 06:00:00 2014
 (1 row)
 
 SET TimeZone to 'Europe/Moscow';

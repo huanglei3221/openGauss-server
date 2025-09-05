@@ -1597,6 +1597,57 @@ void EncodeSpecialTimestamp(Timestamp dt, char* str)
     }
 }
 
+Datum timestamp_zone_for_new_time(text* zone, Timestamp timestamp)
+{
+    TimestampTz result;
+    int tz;
+    char tzname[TZ_STRLEN_MAX + 1];
+    char* lowzone = NULL;
+    int type;
+    int val;
+    pg_tz* tzp = NULL;
+
+    if (TIMESTAMP_NOT_FINITE(timestamp))
+        PG_RETURN_TIMESTAMPTZ(timestamp);
+
+    /*
+     * Look up the requested timezone.	First we look in the date token table
+     * (to handle cases like "EST"), and if that fails, we look in the
+     * timezone database (to handle cases like "America/New_York").  (This
+     * matches the order in which timestamp input checks the cases; it's
+     * important because the timezone database unwisely uses a few zone names
+     * that are identical to offset abbreviations.)
+     */
+    text_to_cstring_buffer(zone, tzname, sizeof(tzname));
+    lowzone = downcase_truncate_identifier(tzname, strlen(tzname), false);
+
+    type = DecodeSpecial(0, lowzone, &val);
+    if (type == TZ || type == DTZ) {
+        tz = -(val * MINS_PER_HOUR);
+        result = dt2local(timestamp, tz);
+    } else {
+        tzp = pg_tzset(tzname);
+        if (tzp != NULL) {
+            /* Apply the timezone change */
+            struct pg_tm tm;
+            fsec_t fsec;
+
+            if (timestamp2tm(timestamp, NULL, &tm, &fsec, NULL, tzp) != 0)
+                ereport(ERROR, (errcode(ERRCODE_DATETIME_VALUE_OUT_OF_RANGE), errmsg("timestamp out of range")));
+            tz = DetermineTimeZoneOffset(&tm, tzp);
+            if (tm2timestamp(&tm, fsec, &tz, &result) != 0)
+                ereport(ERROR,
+                    (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                        errmsg("could not convert to time zone \"%s\"", tzname)));
+        } else {
+            ereport(
+                ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("time zone \"%s\" not recognized", tzname)));
+            result = 0; /* keep compiler quiet */
+        }
+    }
+
+    PG_RETURN_TIMESTAMPTZ(result);
+}
 Datum new_time(PG_FUNCTION_ARGS)
 {
     if (!DB_IS_CMPT(A_FORMAT)) {
@@ -1609,7 +1660,7 @@ Datum new_time(PG_FUNCTION_ARGS)
     
     Timestamp result = DirectFunctionCall2(
         timestamptz_zone, PointerGetDatum(timezone2),
-        TimestampTzGetDatum(DirectFunctionCall2(timestamp_zone, PointerGetDatum(timezone1), TimestampGetDatum(dt))));
+        timestamp_zone_for_new_time(timezone1, dt));
     AdjustTimestampForTypmod(&result, 0);
     PG_RETURN_TIMESTAMP(result);
 }
@@ -4840,8 +4891,8 @@ Datum interval_part(PG_FUNCTION_ARGS)
 Datum timestamp_zone(PG_FUNCTION_ARGS)
 {
     text* zone = PG_GETARG_TEXT_PP(0);
-    Timestamp timestamp = PG_GETARG_TIMESTAMP(1);
-    TimestampTz result;
+    TimestampTz timestamp = timestamp2timestamptz(PG_GETARG_TIMESTAMP(1));
+    Timestamp result;
     int tz;
     char tzname[TZ_STRLEN_MAX + 1];
     char* lowzone = NULL;
@@ -4849,7 +4900,7 @@ Datum timestamp_zone(PG_FUNCTION_ARGS)
     pg_tz* tzp = NULL;
 
     if (TIMESTAMP_NOT_FINITE(timestamp))
-        PG_RETURN_TIMESTAMPTZ(timestamp);
+        PG_RETURN_TIMESTAMP(timestamp);
 
     /*
      * Look up the requested timezone.	First we look in the date token table
@@ -4863,9 +4914,8 @@ Datum timestamp_zone(PG_FUNCTION_ARGS)
     lowzone = downcase_truncate_identifier(tzname, strlen(tzname), false);
 
     type = DecodeSpecial(0, lowzone, &val);
-
     if (type == TZ || type == DTZ) {
-        tz = -(val * MINS_PER_HOUR);
+        tz = val * MINS_PER_HOUR;
         result = dt2local(timestamp, tz);
     } else {
         tzp = pg_tzset(tzname);
@@ -4874,10 +4924,9 @@ Datum timestamp_zone(PG_FUNCTION_ARGS)
             struct pg_tm tm;
             fsec_t fsec;
 
-            if (timestamp2tm(timestamp, NULL, &tm, &fsec, NULL, tzp) != 0)
+            if (timestamp2tm(timestamp, &tz, &tm, &fsec, NULL, tzp) != 0)
                 ereport(ERROR, (errcode(ERRCODE_DATETIME_VALUE_OUT_OF_RANGE), errmsg("timestamp out of range")));
-            tz = DetermineTimeZoneOffset(&tm, tzp);
-            if (tm2timestamp(&tm, fsec, &tz, &result) != 0)
+            if (tm2timestamp(&tm, fsec, NULL, &result) != 0)
                 ereport(ERROR,
                     (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
                         errmsg("could not convert to time zone \"%s\"", tzname)));
@@ -4888,7 +4937,7 @@ Datum timestamp_zone(PG_FUNCTION_ARGS)
         }
     }
 
-    PG_RETURN_TIMESTAMPTZ(result);
+    PG_RETURN_TIMESTAMP(result);
 }
 
 /* timestamp_izone()
@@ -4897,12 +4946,12 @@ Datum timestamp_zone(PG_FUNCTION_ARGS)
 Datum timestamp_izone(PG_FUNCTION_ARGS)
 {
     Interval* zone = PG_GETARG_INTERVAL_P(0);
-    Timestamp timestamp = PG_GETARG_TIMESTAMP(1);
-    TimestampTz result;
+    TimestampTz timestamp = timestamp2timestamptz(PG_GETARG_TIMESTAMP(1));
+    Timestamp result;
     int tz;
 
     if (TIMESTAMP_NOT_FINITE(timestamp))
-        PG_RETURN_TIMESTAMPTZ(timestamp);
+        PG_RETURN_TIMESTAMP(timestamp);
 
     if (zone->month != 0)
         ereport(ERROR,
@@ -4911,14 +4960,14 @@ Datum timestamp_izone(PG_FUNCTION_ARGS)
                     DatumGetCString(DirectFunctionCall1(interval_out, PointerGetDatum(zone))))));
 
 #ifdef HAVE_INT64_TIMESTAMP
-    tz = zone->time / USECS_PER_SEC;
+    tz = -(zone->time / USECS_PER_SEC);
 #else
-    tz = zone->time;
+    tz = -zone->time;
 #endif
 
     result = dt2local(timestamp, tz);
 
-    PG_RETURN_TIMESTAMPTZ(result);
+    PG_RETURN_TIMESTAMP(result);
 } /* timestamp_izone() */
 
 /* timestamp_timestamptz()
