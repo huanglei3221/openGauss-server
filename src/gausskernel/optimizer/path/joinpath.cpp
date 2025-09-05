@@ -48,7 +48,6 @@
 
 #define PATH_PARAM_BY_REL(path, rel)  \
    ((path)->param_info && bms_overlap(PATH_REQ_OUTER(path), (rel)->relids))
-
 static void copy_JoinCostWorkspace(JoinCostWorkspace* to, JoinCostWorkspace* from);
 static void sort_inner_and_outer(PlannerInfo* root, RelOptInfo* joinrel, RelOptInfo* outerrel, RelOptInfo* innerrel,
     List* restrictlist, List* mergeclause_list, JoinType jointype, JoinPathExtraData* extra,
@@ -882,7 +881,9 @@ static Path* get_memoize_path(PlannerInfo *root, RelOptInfo *innerrel,
 
     /* Check if we have hash ops for each parameter to the path */
     /* SMP do not support memoize,  we only consider memoize when query dop = 1 */
-    if (u_sess->opt_cxt.query_dop == 1 &&
+    /* column table do not support memoize , there are lots of work to do */
+    if (!contains_column_tables(root->parse->rtable) &&
+        u_sess->opt_cxt.query_dop == 1 &&
         paraminfo_get_equal_hashops(root,
                                     inner_path->param_info,
                                     outerrel,
