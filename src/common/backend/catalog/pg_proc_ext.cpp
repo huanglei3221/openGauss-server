@@ -276,6 +276,10 @@ void check_func_can_cache_result(CreateFunctionStmt* n, bool notsupport)
     foreach (lc, n->options) {
         val = (DefElem*)lfirst(lc);
         if (pg_strcasecmp(val->defname, "result_cache") == 0) {
+            if (hasResultCache) {
+                ereport(ERROR,
+                    (errcode(ERRCODE_SYNTAX_ERROR), errmsg("conflicting or redundant options")));
+            }
             hasResultCache = true;
             valretcache = val;
             continue;
