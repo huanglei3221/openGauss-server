@@ -36,7 +36,7 @@ typedef enum StartWithOpExecStatus {
 } StartWithOpExecStatus;
 
 #define KEY_START_TAG "{"
-#define KEY_SPLIT_TAG "/"
+#define KEY_SPLIT_TAG "\007"
 #define KEY_CLOSE_TAG "}"
 
 #define ITRCYCLE_CHECK_LIMIT  50
@@ -585,7 +585,7 @@ static void UpdateCurrentSlotPathValues(TupleTableSlot* slot, List* internal_pat
     ListCell* lc2 = NULL;
     forboth(lc1, path_entry_list, lc2, internal_path_entry_list) {
         char* nodepath = NULL;
-        char* spliter = "/";
+        char* spliter = KEY_SPLIT_TAG;
         StringInfoData si;
         initStringInfo(&si);
         TargetEntry* te1 = (TargetEntry*)lfirst(lc1);
@@ -966,25 +966,6 @@ Datum sys_connect_by_path(PG_FUNCTION_ARGS)
     List *token_list = GetCurrentArrayColArray(fcinfo, value, &raw_array_str, true, &constArrayList);
 
     ListCell *token = NULL;
-    char *trimValue = TrimStr(value);
-    if (trimValue != NULL && !constArrayList) {
-        bool valid = false;
-        foreach (token, token_list) {
-            char *curValue = TrimStr((const char *)lfirst(token));
-            if (curValue == NULL) {
-                continue;
-            }
-            if (strcmp(trimValue, curValue) == 0) {
-                valid = true;
-                break;
-            }
-        }
-
-        if (!valid) {
-            elog(ERROR, "node value is not in path (value:%s path:%s)", value, raw_array_str);
-        }
-    }
-
     /*
      * step[2]:
      *   start to build result array string
@@ -1193,10 +1174,10 @@ static List *CovertInternalArrayStringToList(char *raw_array_str)
 {
     List *token_list = NIL;
     char *token_tmp = NULL;
-    char *token = strtok_s(raw_array_str, "/", &token_tmp);
+    char *token = strtok_s(raw_array_str, KEY_SPLIT_TAG, &token_tmp);
     while (token != NULL) {
         token_list = lappend(token_list, token);
-        token = strtok_s(NULL, "/", &token_tmp);
+        token = strtok_s(NULL, KEY_SPLIT_TAG, &token_tmp);
     }
 
     return token_list;
