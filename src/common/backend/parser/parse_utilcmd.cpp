@@ -2295,9 +2295,16 @@ static void transformTableLikeClause(
                             /* is serial type */
                             def->is_serial = true;
                             bool large = (get_rel_relkind(seqId) == RELKIND_LARGE_SEQUENCE);
-                            /* Special actions for SERIAL pseudo-types */
-
-                            createSeqOwnedByTable(cxt, def, preCheck, large, is_autoinc);
+                            /* Special actions for SERIAL pseudo-types, treat serial and identity differently */
+                            bool isForIdentity = DB_IS_CMPT(D_FORMAT) &&
+                                                 StrEndWith(get_rel_name(seqId), "_seq_identity");
+                            List* seqoptions = NIL;
+                            if (isForIdentity) {
+                                // read identity sequence value from tuple.
+                                // keep def->is_serial = true, to avoid setting def->cooked_default
+                                seqoptions = sequence_to_options(seqId);
+                            }
+                            createSeqOwnedByTable(cxt, def, preCheck, large, is_autoinc, isForIdentity, seqoptions);
                         }
                     }
                 }

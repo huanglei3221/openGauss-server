@@ -514,5 +514,106 @@ select ident_current('t_identity_0021');
 (1 row)
 
 drop table t_identity_0021;
+-- ## create table like, copy identity attr, but no data.
+create table t_identity_0023(id int identity(100,1), name varchar(10));
+NOTICE:  CREATE TABLE will create implicit sequence "t_identity_0023_id_seq_identity" for serial column "t_identity_0023.id"
+insert into t_identity_0023(name) values('x1');
+insert into t_identity_0023(name) values('x2');
+insert into t_identity_0023(name) values('x3');
+select ident_current('t_identity_0023');
+ ident_current 
+---------------
+           102
+(1 row)
+
+select scope_identity();
+ scope_identity 
+----------------
+            102
+(1 row)
+
+-- no option.
+create table t_identity_0023_1 (like t_identity_0023);
+NOTICE:  CREATE TABLE will create implicit sequence "t_identity_0023_1_id_seq_identity" for serial column "t_identity_0023_1.id"
+\d+ t_identity_0023_1
+                                                    Table "identity_schema.t_identity_0023_1"
+ Column |         Type          |                                Modifiers                                | Storage  | Stats target | Description 
+--------+-----------------------+-------------------------------------------------------------------------+----------+--------------+-------------
+ id     | integer               | not null default nextval('t_identity_0023_1_id_seq_identity'::regclass) | plain    |              | 
+ name   | character varying(10) |                                                                         | extended |              | 
+Has OIDs: no
+Options: orientation=row, compression=no
+
+select ident_current('t_identity_0023_1');
+ ident_current 
+---------------
+           100
+(1 row)
+
+insert t_identity_0023_1 (name) values('xxx1');
+insert t_identity_0023_1 (name) values('xxx1');
+select ident_current('t_identity_0023_1');
+ ident_current 
+---------------
+           101
+(1 row)
+
+select scope_identity();
+ scope_identity 
+----------------
+            101
+(1 row)
+
+truncate table t_identity_0023_1;
+select ident_current('t_identity_0023_1');
+ ident_current 
+---------------
+           100
+(1 row)
+
+insert t_identity_0023_1 (name) values('xxx1');
+insert t_identity_0023_1 (name) values('xxx1');
+select ident_current('t_identity_0023_1');
+ ident_current 
+---------------
+           101
+(1 row)
+
+select * from t_identity_0023_1 order by id;
+ id  | name 
+-----+------
+ 100 | xxx1
+ 101 | xxx1
+(2 rows)
+
+-- including DEFAULTS.
+create table t_identity_0023_2 (like t_identity_0023 INCLUDING DEFAULTS);
+NOTICE:  CREATE TABLE will create implicit sequence "t_identity_0023_2_id_seq_identity" for serial column "t_identity_0023_2.id"
+\d+ t_identity_0023_2
+                                                    Table "identity_schema.t_identity_0023_2"
+ Column |         Type          |                                Modifiers                                | Storage  | Stats target | Description 
+--------+-----------------------+-------------------------------------------------------------------------+----------+--------------+-------------
+ id     | integer               | not null default nextval('t_identity_0023_2_id_seq_identity'::regclass) | plain    |              | 
+ name   | character varying(10) |                                                                         | extended |              | 
+Has OIDs: no
+Options: orientation=row, compression=no
+
+insert t_identity_0023_2 (name) values('xxx1');
+insert t_identity_0023_2 (name) values('xxx1');
+select ident_current('t_identity_0023_2');
+ ident_current 
+---------------
+           101
+(1 row)
+
+select scope_identity();
+ scope_identity 
+----------------
+            101
+(1 row)
+
+drop table t_identity_0023;
+drop table t_identity_0023_1;
+drop table t_identity_0023_2;
 reset current_schema;
 drop schema identity_schema;

@@ -2668,6 +2668,42 @@ sequence_values *get_sequence_values(Oid sequenceId)
 }
 
 /*
+ * deparse to DefElem list of sequence parameters from sepcified sequence
+ * and initial some import values.
+ */
+List* sequence_to_options(Oid sequenceId)
+{
+    int64 uuid;
+    int64 start;
+    int64 increment;
+    int64 maxvalue;
+    int64 minvalue;
+    int64 cachevalue;
+    bool cycle = false;
+    List* options = NIL;
+
+    /* open sequence relation, and lock it. */
+    Relation relseq = relation_open(sequenceId, AccessShareLock);
+    (void)get_sequence_params(relseq, &uuid, &start, &increment, &maxvalue, &minvalue, &cachevalue, &cycle);
+    relation_close(relseq, AccessShareLock);
+    /* ignore uuid, as, cachevalue. */
+    options = lappend(options,
+                            (Node*)makeDefElem("cache", (Node*)makeFloat(psprintf(INT64_FORMAT, cachevalue))));
+    options = lappend(options,
+                            (Node*)makeDefElem("cycle", (Node*)makeBoolConst(cycle, false)));
+    options = lappend(options,
+                            (Node*)makeDefElem("minvalue", (Node*)makeFloat(psprintf(INT64_FORMAT, minvalue))));
+    options = lappend(options,
+                            (Node*)makeDefElem("maxvalue", (Node*)makeFloat(psprintf(INT64_FORMAT, maxvalue))));
+    options = lappend(options,
+                            (Node*)makeDefElem("increment", (Node*)makeFloat(psprintf(INT64_FORMAT, increment))));
+    options = lappend(options,
+                            (Node*)makeDefElem("start", (Node*)makeFloat(psprintf(INT64_FORMAT, start))));
+    return options;
+}
+
+
+/*
  * Return sequence parameters
  */
 void get_sequence_params(Relation rel, int64* uuid, int64* start, int64* increment, int64* maxvalue, int64* minvalue,

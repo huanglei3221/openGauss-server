@@ -196,7 +196,7 @@ extern const char* seq_type_name(uint8 subtype);
 extern GTM_UUID get_uuid_from_rel(Relation rel);
 extern void lockNextvalOnCn(Oid relid);
 extern sequence_values *get_sequence_values(Oid sequenceId);
-
+extern List* sequence_to_options(Oid sequenceId);
 extern void get_sequence_params(Relation rel, int64* uuid, int64* start, int64* increment, int64* maxvalue,
     int64* minvalue, int64* cache, bool* cycle);
 

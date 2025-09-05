@@ -304,5 +304,37 @@ insert into t_identity_0021(name) values('lisi');
 select ident_current('t_identity_0021');
 drop table t_identity_0021;
 
+-- ## create table like, copy identity attr, but no data.
+create table t_identity_0023(id int identity(100,1), name varchar(10));
+insert into t_identity_0023(name) values('x1');
+insert into t_identity_0023(name) values('x2');
+insert into t_identity_0023(name) values('x3');
+select ident_current('t_identity_0023');
+select scope_identity();
+-- no option.
+create table t_identity_0023_1 (like t_identity_0023);
+\d+ t_identity_0023_1
+select ident_current('t_identity_0023_1');
+insert t_identity_0023_1 (name) values('xxx1');
+insert t_identity_0023_1 (name) values('xxx1');
+select ident_current('t_identity_0023_1');
+select scope_identity();
+truncate table t_identity_0023_1;
+select ident_current('t_identity_0023_1');
+insert t_identity_0023_1 (name) values('xxx1');
+insert t_identity_0023_1 (name) values('xxx1');
+select ident_current('t_identity_0023_1');
+select * from t_identity_0023_1 order by id;
+-- including DEFAULTS.
+create table t_identity_0023_2 (like t_identity_0023 INCLUDING DEFAULTS);
+\d+ t_identity_0023_2
+insert t_identity_0023_2 (name) values('xxx1');
+insert t_identity_0023_2 (name) values('xxx1');
+select ident_current('t_identity_0023_2');
+select scope_identity();
+
+drop table t_identity_0023;
+drop table t_identity_0023_1;
+drop table t_identity_0023_2;
 reset current_schema;
 drop schema identity_schema;
