@@ -3833,6 +3833,19 @@ static FuncCache EStateFuncPutCache(EState *es, Oid fnid, Oid fncoll)
     return fncache;
 }
 
+#define FUNCCACHE_VALUE_NEED_FREE(dtmtype) \
+    ((dtmtype) == TEXTOID || (dtmtype) == VARCHAROID || \
+     (dtmtype) == NVARCHAR2OID || (dtmtype) == BPCHAROID || \
+     (dtmtype) == NUMERICOID)
+
+static void FuncCacheFreeValue(Oid dtmtype, Datum* datum)
+{
+    if (datum && *datum && FUNCCACHE_VALUE_NEED_FREE(dtmtype)) {
+        pfree(DatumGetPointer(*datum));
+        *datum = (Datum)0;
+    }
+}
+
 /*
  * Recycling cache is mainly used for:
  * 1. The plan is called only once and uses unique parameters. The parameters
@@ -3845,7 +3858,6 @@ static FuncCache EStateFuncPutCache(EState *es, Oid fnid, Oid fncoll)
  */
 static void EStateFuncReclaimCache(FuncCache fncache)
 {
-    Oid dtmtype;
     short i;
     short j;
     short k;
@@ -3883,32 +3895,20 @@ static void EStateFuncReclaimCache(FuncCache fncache)
             }
 
             for (k = 0; k < nargs; k++) {
-                dtmtype = fncache->argtypes[k];
-
-                if (dtmtype == TEXTOID || dtmtype == VARCHAROID ||
-                        dtmtype == NVARCHAR2OID || dtmtype == BPCHAROID ||
-                        dtmtype == NUMERICOID) {
-                    pfree(DatumGetPointer(retcache->args[k]));
-                }
+                FuncCacheFreeValue(fncache->argtypes[k], &retcache->args[k]);
             }
-
-            dtmtype = fncache->rettype;
-            if (dtmtype == TEXTOID || dtmtype == VARCHAROID ||
-                    dtmtype == NVARCHAR2OID || dtmtype == BPCHAROID ||
-                    dtmtype == NUMERICOID) {
-                pfree(DatumGetPointer(retcache->retval));
-            }
+            FuncCacheFreeValue(fncache->rettype, &retcache->retval);
 
             if ((j % FR_CACHE_SIZE_SECTION) == 0) {
-                pfree(retbucket->retcache[j]->args);
-                pfree(retbucket->retcache[j]);
+                pfree_ext(retbucket->retcache[j]->args);
+                pfree_ext(retbucket->retcache[j]);
             }
         }
 
-        pfree(retbucket->retcache);
+        pfree_ext(retbucket->retcache);
     }
 
-    pfree(fncache->cacheptr.retbuckets);
+    pfree_ext(fncache->cacheptr.retbuckets);
 }
 
 /* Strings that are too long are difficult to match and are not cached. */
@@ -4136,7 +4136,7 @@ bool EStateFuncGetRetCache(FunctionCallInfo fcinfo, Datum *retvalue, bool *retnu
         Assert(fncache->cacheptr.retbuckets == NULL);
 
         if (fncache->argtypes) {
-            pfree(fncache->argtypes);
+            pfree_ext(fncache->argtypes);
         }
 
         fcinfo->fncache = NULL;
@@ -4520,19 +4520,12 @@ bool EStateFuncPutRetCache(FunctionCallInfo fcinfo, Datum ret)
     rret->state = FR_VALID;
     rret->state += FCR_USAGECOUNT_ONE;
 
+    datumtype = fncache->rettype;
+    FuncCacheFreeValue(datumtype, &rret->retval);
+
     if (fcinfo->isnull) {
         rret->state |= FR_RETNULL;
     } else {
-        datumtype = fncache->rettype;
-
-        if (datumtype == NUMERICOID || datumtype == TEXTOID ||
-                datumtype == VARCHAROID || datumtype == NVARCHAR2OID ||
-                datumtype == BPCHAROID) {
-            if (rret->retval) {
-                pfree(DatumGetPointer(rret->retval));
-            }
-        }
-
         rret->retval = FunctionDatumCopy(ret, datumtype);
     }
 
@@ -4542,19 +4535,12 @@ bool EStateFuncPutRetCache(FunctionCallInfo fcinfo, Datum ret)
     rret->argisnull = 0;
 
     for (i = 0; i < nargs; i++) {
+        datumtype = fncache->argtypes[i];
+        FuncCacheFreeValue(datumtype, &rret->args[i]);
+
         if (argnull[i]) {
             rret->argisnull |= (1 << i);
             continue;
-        }
-
-        datumtype = fncache->argtypes[i];
-
-        if (datumtype == NUMERICOID || datumtype == TEXTOID ||
-                datumtype == VARCHAROID || datumtype == NVARCHAR2OID ||
-                datumtype == BPCHAROID) {
-            if (rret->args[i]) {
-                pfree(DatumGetPointer(rret->args[i]));
-            }
         }
 
         rret->args[i] = FunctionDatumCopy(fargs[i], datumtype);

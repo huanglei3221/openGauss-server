@@ -1946,6 +1946,48 @@ NOTICE:  param:<NULL>
 
 drop package pkg_test;
 NOTICE:  drop cascades to 2 other objects
+-- recycle cache
+create table test_cycle(id int,col text);
+insert into test_cycle values(generate_series(1,2550),generate_series(1,2550));
+insert into test_cycle values(generate_series(2551,2561),null);
+update test_cycle set col=null where id in
+(28,36,55,93,128,136,155,193,234,249,257,291,332,351,389,397,426,438,445,483,520,543,585,622,641,687,699,724,747,759,
+781,814,869,877,912,971,1030,1053,1095,1128,1136,1155,1193,1234,1249,1257,1291,1332,1351,1389,1397,1426,1438,1445,
+1483,1520,1543,1585,1622,1641,1687,1699,1724,1747,1759,1781,1814,1869,1877,1912,1971,2024,2047,2059,2081,2122,2141,
+2187,2199,2220,2243,2285,2326,2338,2345,2383,2432,2451,2489,2497,2534,2549);
+create or replace  function test_cycle_func1(p text) returns text
+as $$
+begin
+    return p;
+end;
+$$ language plpgsql stable result_cache;
+explain (costs off, analyze, timing off) select test_cycle_func1(col) from test_cycle;
+                    QUERY PLAN                     
+---------------------------------------------------
+ Seq Scan on test_cycle (actual rows=2561 loops=1)
+--? Total runtime: .*
+(2 rows)
+
+update test_cycle set col=28 where col is null;
+create or replace function test_cycle_func2(p text) returns text
+as $$
+begin
+    if p = '28' then
+        return null;
+    end if;
+    return p;
+end;
+$$ language plpgsql stable result_cache;
+explain (costs off, analyze, timing off) select test_cycle_func2(col) from test_cycle;
+                    QUERY PLAN                     
+---------------------------------------------------
+ Seq Scan on test_cycle (actual rows=2561 loops=1)
+--? Total runtime: .*
+(2 rows)
+
+drop function test_cycle_func1(text);
+drop function test_cycle_func2(text);
+drop table if exists test_cycle;
 drop table if exists testtab,all_support_type,multi_col,tab_tmp;
 set search_path to default;
 drop schema func_result_cache;
