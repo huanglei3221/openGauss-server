@@ -424,7 +424,8 @@ static const struct behavior_compat_entry behavior_compat_options[OPT_MAX] = {
     {"disable_record_type_in_dml", OPT_DISABLE_RECORD_TYPE_IN_DML},
     {"accept_float_str_as_int", OPT_ACCEPT_FLOAT_STR_AS_INT},
     {"ignore_unused_index_check_on_dml", OPT_IGNORE_UNUSED_INDEX_CHECK_ON_DML},
-    {"compatible_a_db_array", OPT_COMPATIBLE_A_DB_ARRAY}
+    {"compatible_a_db_array", OPT_COMPATIBLE_A_DB_ARRAY},
+    {"sql_mode_full_group", OPT_A_SQL_MODE_FULL_GROUP}
 };
 
 // increase SQL_IGNORE_STRATEGY_NUM if we need more strategy
@@ -3239,7 +3240,7 @@ static void InitSqlConfigureNamesString()
             NULL,
             GUC_LIST_INPUT | GUC_REPORT},
             &u_sess->attr.attr_sql.behavior_compat_string,
-            "",
+            "sql_mode_full_group",
             check_behavior_compat_options,
             assign_behavior_compat_options,
             show_behavior_compat_options},

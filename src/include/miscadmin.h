@@ -265,7 +265,8 @@ extern bool contain_backend_version(uint32 version_number);
 #define OPT_ACCEPT_FLOAT_STR_AS_INT (1LL << 35)
 #define OPT_IGNORE_UNUSED_INDEX_CHECK_ON_DML (1LL << 36)
 #define OPT_COMPATIBLE_A_DB_ARRAY (1LL << 37)
-#define OPT_MAX 38
+#define OPT_A_SQL_MODE_FULL_GROUP (1LL << 38)
+#define OPT_MAX 39
 
 #define PLPSQL_OPT_FOR_LOOP 1
 #define PLPSQL_OPT_OUTPARAM 2
@@ -328,6 +329,8 @@ static const struct behavior_compat_entry restrict_nonsystem_relation_kind[OPT_R
 #define IGNORE_UNUSED_INDEX_CHECK_ON_DML (u_sess->utils_cxt.behavior_compat_flags \
     & OPT_IGNORE_UNUSED_INDEX_CHECK_ON_DML)
 #define COMPATIBLE_A_DB_ARRAY (u_sess->utils_cxt.behavior_compat_flags & OPT_COMPATIBLE_A_DB_ARRAY)
+#define A_SQL_MODE_FULL_GROUP (u_sess->utils_cxt.behavior_compat_flags & OPT_A_SQL_MODE_FULL_GROUP)
+
 
 #define RESTRICT_NONSYSTEM_RELATION_KIND_VIEW \
     (bool(u_sess->utils_cxt.restrict_nonsystem_relation_kind_flags \

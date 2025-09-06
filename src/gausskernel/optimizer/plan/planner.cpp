@@ -3268,7 +3268,10 @@ static Plan* internal_grouping_planner(PlannerInfo* root, double tuple_fraction)
             /* Set u_sess->opt_cxt.query_dop to forbidden the parallel of subplan. */
             int dop_tmp = u_sess->opt_cxt.query_dop;
             u_sess->opt_cxt.query_dop = 1;
-            preprocess_minmax_aggregates(root, tlist);
+            /* can't optimize min/max if we have group by error */
+            if (!u_sess->attr.attr_sql.group_by_error) {
+                preprocess_minmax_aggregates(root, tlist);
+            }
             /* Reset u_sess->opt_cxt.query_dop. */
             u_sess->opt_cxt.query_dop = dop_tmp;
         }

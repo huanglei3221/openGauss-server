@@ -287,6 +287,7 @@ typedef struct knl_session_attr_sql {
     bool shark;
     bool enable_vector_targetlist;
     bool enable_default_local_index;
+    bool group_by_error;
 #endif
 } knl_session_attr_sql;
 

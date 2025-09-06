@@ -421,3 +421,12 @@ analyze agg_test;
 explain (verbose on, costs off)select c , d from agg_test group by c, d;
 select c, d from agg_test group by c, d order by 1, 2;
 drop table agg_test;
+
+drop table if exists tt;
+create table tt(id int,col_number number,col_var varchar(50));
+insert into tt values (1, 1, 1);
+select count(id) from (select * from tt order by id) order by id;
+set behavior_compat_options = '';
+select count(id) from (select * from tt order by id) order by id;
+reset behavior_compat_options;
+drop table tt;
