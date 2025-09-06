@@ -1831,5 +1831,21 @@ select (@rownum1:=@rownum1+1) AS rownum1,td.* from tb_1101383 td where td.enroll
 (2 rows)
 
 drop TABLE tb_1101383;
+set enable_set_variable_b_format to on;
+set @VAR1_1102053 = 123;
+select @VAR1_1102053;
+ @var1_1102053 
+---------------
+           123
+(1 row)
+
+set @VAR1_中文 = 456;
+select @VAR1_中文;
+ @var1_中文 
+------------
+        456
+(1 row)
+
+reset enable_set_variable_b_format;
 \c regression
 drop database B_db;
