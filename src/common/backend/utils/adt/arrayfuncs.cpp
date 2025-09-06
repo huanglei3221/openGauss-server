@@ -4427,6 +4427,15 @@ static bool array_eq_db_a_inner(ArrayType* array1, ArrayType* array2, Oid collat
             bool isnull1 = bitmap1 && (*bitmap1 & bitmask) == 0;
             bool isnull2 = bitmap2 && (*bitmap2 & bitmask) == 0;
 
+            /* In other databases, arrays containing null values will yield unequal results */
+            if (isnull1 || isnull2) {
+                pfree_ext(arr1);
+                pfree_ext(arr2);
+                PG_FREE_IF_COPY(array1, 0);
+                PG_FREE_IF_COPY(array2, 1);
+                return false;
+            }
+
             /* Get elements, checking for NULL */
             inner_init_element(isnull1, &elt1, &ptr1, &arr1[i], typlen, typbyval, typalign);
             inner_init_element(isnull2, &elt2, &ptr2, &arr2[i], typlen, typbyval, typalign);

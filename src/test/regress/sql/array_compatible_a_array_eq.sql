@@ -26,6 +26,32 @@ BEGIN
 END;
 /
 
+declare
+    type my_table is table of varchar2(100);
+    set1 my_table := my_table('b', 'a',null, null);
+    set2 my_table := my_table(null,'a', 'b', 'C');
+begin
+    if set1 = set2 then
+        raise info '集合相等';
+    else
+        raise info'集合不相等';
+    end if;
+end;
+/
+
+declare
+    type my_table is table of varchar2(100);
+    set1 my_table := my_table('Abc', '中文', '！@#￥%!@#$%', '英文混合Abc123',null);
+    set2 my_table := my_table(null,'英文混合Abc123','Abc', '中文', '！@#￥%!@#$%');
+begin
+    if set1 = set2 then
+        raise info '集合相等';
+    else
+        raise info'集合不相等';
+    end if;
+end;
+/
+
 DECLARE
     TYPE my_table IS TABLE OF VARCHAR2(100);
     set1 my_table := my_table('b', 'b', 'c');
