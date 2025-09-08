@@ -64,6 +64,7 @@ BEGIN
         DROP FUNCTION IF EXISTS pg_catalog.halfvec(halfvec, int4, boolean) CASCADE;
         DROP FUNCTION IF EXISTS pg_catalog.halfvec_to_float4(halfvec, int4, boolean) CASCADE;
         DROP FUNCTION IF EXISTS pg_catalog.halfvec_to_vector(halfvec, int4, boolean) CASCADE;
+        DROP FUNCTION IF EXISTS pg_catalog.vector_to_halfvec(vector, int4, boolean) CASCADE;
         DROP OPERATOR IF EXISTS pg_catalog.<->(halfvec, halfvec) CASCADE;
         DROP OPERATOR IF EXISTS pg_catalog.<#>(halfvec, halfvec) CASCADE;
         DROP OPERATOR IF EXISTS pg_catalog.<=>(halfvec, halfvec) CASCADE;
