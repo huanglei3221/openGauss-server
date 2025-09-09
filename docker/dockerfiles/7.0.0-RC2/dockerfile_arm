@@ -24,7 +24,7 @@ RUN set -eux; \
     chown -R omm:omm /var/run/opengauss && chown -R omm:omm /usr/local/opengauss && chown -R omm:omm /var/lib/opengauss &&  chown -R omm:omm /docker-entrypoint-initdb.d && \
     chmod 2777 /var/run/opengauss && \
     rm -rf openGauss-Server-${VERSION}-openEuler22.03-aarch64.tar.bz2 && \
-    wget https://kunpeng-repo.obs.cn-north-4.myhuaweicloud.com/Kunpeng%20BoostKit/Kunpeng%20BoostKit%2025.0.RC1/BoostKit-SRA_Recall-1.1.0.zip && \
+    wget --header="Referer:https://www.hikunpeng.com/" https://kunpeng-repo.obs.cn-north-4.myhuaweicloud.com/Kunpeng%20BoostKit/Kunpeng%20BoostKit%2025.0.RC1/BoostKit-SRA_Recall-1.1.0.zip && \
     unzip BoostKit-SRA_Recall-1.1.0.zip && \
     rpm -ivf boostkit-sra_recall-1.1.0-1.aarch64.rpm && \
     rm -rf BoostKit-SRA_Recall-1.1.0.zip && \
