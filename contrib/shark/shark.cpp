@@ -6,6 +6,8 @@
 #include "parser/parsetree.h"
 #include "rewrite/rewriteHandler.h"
 #include "common/int.h"
+#include "parser/parse_type.h"
+#include "nodes/makefuncs.h"
 #include "commands/extension.h"
 #include "commands/dbcommands.h"
 #include "commands/sequence.h"
@@ -27,6 +29,7 @@ extern List* tsql_raw_parser(const char* str, List** query_string_locationlist);
 extern void assign_tablecmds_hook(void);
 static List* RewriteTypmodExpr(List *expr_list);
 static bool CheckIsMssqlHex(char *str);
+static Oid getVarbinaryOid();
 static Node *make_int_const(int val, int location);
 
 static char* get_collation_name_for_db(Oid dbOid);
@@ -81,6 +84,16 @@ static bool CheckIsMssqlHex(char *str)
     return false;
 }
 
+static Oid getVarbinaryOid()
+{
+    SharkContext* cxt = GetSessionContext();
+    if (cxt->varbinaryOid == InvalidOid) {
+        cxt->varbinaryOid = typenameTypeId(
+            NULL, makeTypeNameFromNameList(list_make2(makeString("sys"), makeString("varbinary"))));
+    }
+    return cxt->varbinaryOid;
+}
+
 static List *RewriteTypmodExpr(List *expr_list)
 {
     /*
@@ -131,6 +144,7 @@ void init_session_vars(void)
     u_sess->hook_cxt.rowcountHook = (void*)rowcount_hook;
     u_sess->hook_cxt.checkIsMssqlHexHook = (void*)CheckIsMssqlHex;
     u_sess->hook_cxt.rewriteTypmodExprHook = (void*)RewriteTypmodExpr;
+    u_sess->hook_cxt.getVarbinaryOidHook = (void*)getVarbinaryOid;
 
     RepallocSessionVarsArrayIfNecessary();
     SharkContext *cxt = (SharkContext*) MemoryContextAlloc(u_sess->self_mem_cxt, sizeof(sharkContext));
@@ -141,6 +155,7 @@ void init_session_vars(void)
     cxt->procid = InvalidOid;
     cxt->lastUsedScopeSeqIdentity = NULL;
     cxt->pltsqlScopeIdentityNestLevel = 0;
+    cxt->varbinaryOid = InvalidOid;
 
     assign_tablecmds_hook();
     AssignIdentitycmdsHook();

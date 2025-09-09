@@ -3072,6 +3072,7 @@ typedef struct knl_u_hook_context {
     void *checkIsMssqlHexHook;
     void *rewriteTypmodExprHook;
     void *invokeNextvalHook;
+    void *getVarbinaryOidHook;
 } knl_u_hook_context;
 
 typedef struct knl_u_libsw_context {
