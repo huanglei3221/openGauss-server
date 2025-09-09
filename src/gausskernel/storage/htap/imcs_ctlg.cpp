@@ -1646,7 +1646,7 @@ void WaitXLogRedoToCurrentLsn(XLogRecPtr currentLsn)
 
     do {
         SpinLockAcquire(&xlogctl->info_lck);
-        latestXLogLsn = t_thrd.shemem_ptr_cxt.XLogCtl->lastReplayedReadRecPtr;
+        latestXLogLsn = t_thrd.shemem_ptr_cxt.XLogCtl->lastReplayedEndRecPtr;
         SpinLockRelease(&xlogctl->info_lck);
         ereport(DEBUG1, (errmsg("Wait lsn for HTAP population, current lsn: %lu, xlog redo lsn: %lu.",
             currentLsn, latestXLogLsn)));
