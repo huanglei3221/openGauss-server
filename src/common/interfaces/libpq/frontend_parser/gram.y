@@ -6056,6 +6056,45 @@ ConstraintElem:
 					n->inforConstraint = (InformationalConstraint*) $5; /* informational constraint info */
 					$$ = (Node *)n;
 				}
+			| PRIMARY KEY USING IDENT '(' constraint_params ')' opt_c_include opt_definition OptConsTableSpace
+				ConstraintAttributeSpec InformationalConstraintElem
+				{
+					Constraint *n = makeNode(Constraint);
+					n->contype = CONSTR_PRIMARY;
+					n->location = @1;
+					n->access_method = $4;
+					n->keys = $6;
+					n->including = $8;
+					n->options = $9;
+					n->indexname = NULL;
+					n->indexspace = $10;
+					n->constraintOptions = NULL;
+					n->initially_valid = true;
+					processCASbits($11, @11, "PRIMARY KEY",
+								   &n->deferrable, &n->initdeferred, NULL,
+								   NULL, yyscanner);
+					n->inforConstraint = (InformationalConstraint *) $12; /* informational constraint info */
+					$$ = (Node *)n;
+				}
+			| PRIMARY KEY index_name USING IDENT '(' constraint_params ')' opt_c_include opt_definition OptConsTableSpace
+				ConstraintAttributeSpec InformationalConstraintElem
+				{
+					Constraint *n = makeNode(Constraint);
+					n->contype = CONSTR_PRIMARY;
+					n->location = @1;
+					n->access_method = $5;
+					n->keys = $7;
+					n->including = $9;
+					n->options = $10;
+					n->indexname = NULL;
+					n->indexspace = $11;
+					n->constraintOptions = NULL;
+					processCASbits($12, @12, "PRIMARY KEY",
+								   &n->deferrable, &n->initdeferred, NULL,
+								   NULL, yyscanner);
+					n->inforConstraint = (InformationalConstraint *) $13;
+					$$ = (Node *)n;
+				}
 			| EXCLUDE access_method_clause '(' ExclusionConstraintList ')'
 				opt_c_include opt_definition OptConsTableSpace ExclusionWhereClause
 				ConstraintAttributeSpec
