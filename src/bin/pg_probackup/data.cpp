@@ -3522,7 +3522,6 @@ get_data_file_headers(HeaderMap *hdr_map, pgFile *file, uint32 backup_version, b
     }
 
     if (current.media_type == MEDIA_TYPE_OSS && !isOssLocal) {
-        remove(hdr_map->path);
         pthread_mutex_unlock(&(hdr_map->mutex));
     }
 
