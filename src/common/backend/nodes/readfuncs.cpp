@@ -127,19 +127,19 @@ THR_LOCAL bool skip_read_extern_fields = false;
     do {                                                  \
         token = pg_strtok(&length); /* skip :fldname */   \
         token = pg_strtok(&length); /* get field value */ \
-        local_node->fldname = atoi(token);                \
+        local_node->fldname = (token == NULL ? 0 : atoi(token));  \
     } while (0)
 
 #define READ_INT_FIELD_DIRECT(fldname)                \
     token = pg_strtok(&length); /* get field value */ \
-    local_node->fldname = atoi(token)
+    local_node->fldname = (token == NULL ? 0 : atoi(token));
 
 /* Read an integer field (anything written as ":fldname %ld") */
 #define READ_LONG_FIELD(fldname)                          \
     do {                                                  \
         token = pg_strtok(&length); /* skip :fldname */   \
         token = pg_strtok(&length); /* get field value */ \
-        local_node->fldname = atol(token);                \
+        local_node->fldname = (token == NULL ? 0 : atol(token));  \
     } while (0)
 
 /* Read an 64bit unsigned integer field (anything written as ":fldname %lu") */
@@ -147,7 +147,7 @@ THR_LOCAL bool skip_read_extern_fields = false;
     do {                                                  \
         token = pg_strtok(&length); /* skip :fldname */   \
         token = pg_strtok(&length); /* get field value */ \
-        local_node->fldname = strtoul(token, NULL, 0);    \
+        local_node->fldname = (token == NULL ? 0 : strtoul(token, NULL, 0));  \
     } while (0)
 
 /* Read an unsigned long integer field (anything written as ":fldname %UINT64") */
@@ -155,14 +155,14 @@ THR_LOCAL bool skip_read_extern_fields = false;
     do {                                                  \
         token = pg_strtok(&length); /* skip :fldname */   \
         token = pg_strtok(&length); /* get field value */ \
-        local_node->fldname = strtoul(token, NULL, 0);    \
+        local_node->fldname = (token == NULL ? 0 : strtoul(token, NULL, 0));  \
     } while (0)
 
 #define READ_POINTER_FIELD(fldname, datatype)                     \
     do {                                                          \
         token = pg_strtok(&length); /* skip :fldname */           \
         token = pg_strtok(&length); /* get field value */         \
-        local_node->fldname = (datatype*)strtoul(token, NULL, 0); \
+        local_node->fldname = (token == NULL ? (datatype*)0 : (datatype*)strtoul(token, NULL, 0)); \
     } while (0)
 
 #define READ_INT_ARRAY(fldname, size)                                       \
@@ -171,7 +171,7 @@ THR_LOCAL bool skip_read_extern_fields = false;
         token = pg_strtok(&length); /* skip :fldname */                     \
         for (int i = 0; i < local_node->size; i++) {                        \
             token = pg_strtok(&length); /* get field value */               \
-            local_node->fldname[i] = atoi(token);                           \
+            local_node->fldname[i] = (token == NULL ? 0 : atoi(token));     \
         }                                                                   \
     } while (0)
 
@@ -204,7 +204,7 @@ THR_LOCAL bool skip_read_extern_fields = false;
         token = pg_strtok(&length); /* skip :fldname */         \
         for (int i = 0; i < size; i++) {                        \
             token = pg_strtok(&length); /* get field value */   \
-            local_node->fldname[i] = atoi(token);               \
+            local_node->fldname[i] = (token == NULL ? 0 : atoi(token));  \
         }                                                       \
     } while (0)
 
@@ -214,7 +214,7 @@ THR_LOCAL bool skip_read_extern_fields = false;
         token = pg_strtok(&length); /* skip :fldname */             \
         for (int i = 0; i < size; i++) {                            \
             token = pg_strtok(&length); /* get field value */       \
-            local_node->fldname[i] = (uint2)atoi(token);            \
+            local_node->fldname[i] = (token == NULL ? 0 : (uint2)atoi(token));  \
         }                                                           \
     } while (0)
 
@@ -224,7 +224,7 @@ THR_LOCAL bool skip_read_extern_fields = false;
         token = pg_strtok(&length); /* skip :fldname */                                   \
         for (int i = 0; i < local_node->size; i++) {                                      \
             token = pg_strtok(&length); /* get field value */                             \
-            local_node->fldname[i] = atoi(token);                                         \
+            local_node->fldname[i] = (token == NULL ? 0 : atoi(token));                   \
         }                                                                                 \
     } while (0)
 
@@ -233,7 +233,7 @@ THR_LOCAL bool skip_read_extern_fields = false;
     do {                                                  \
         token = pg_strtok(&length); /* skip :fldname */   \
         token = pg_strtok(&length); /* get field value */ \
-        local_node->fldname = atoui(token);               \
+        local_node->fldname = (token == NULL ? 0 : atoui(token));  \
     } while (0)
 
 /* Read an OID field (don't hard-wire assumption that OID is same as uint) */
@@ -241,7 +241,7 @@ THR_LOCAL bool skip_read_extern_fields = false;
     do {                                                  \
         token = pg_strtok(&length); /* skip :fldname */   \
         token = pg_strtok(&length); /* get field value */ \
-        local_node->fldname = atooid(token);              \
+        local_node->fldname = (token == NULL ? 0 : atooid(token));  \
     } while (0)
 
 #define READ_OID_ARRAY(fldname, size)                                       \
@@ -250,7 +250,7 @@ THR_LOCAL bool skip_read_extern_fields = false;
         token = pg_strtok(&length); /* skip :fldname */                     \
         for (int i = 0; i < local_node->size; i++) {                        \
             token = pg_strtok(&length); /* get field value */               \
-            local_node->fldname[i] = atooid(token);                         \
+            local_node->fldname[i] = (token == NULL ? 0 : atooid(token));   \
         }                                                                   \
     } while (0)
 
@@ -286,7 +286,7 @@ THR_LOCAL bool skip_read_extern_fields = false;
         token = pg_strtok(&length); /* skip :fldname */         \
         for (int i = 0; i < size; i++) {                        \
             token = pg_strtok(&length); /* get field value */   \
-            local_node->fldname[i] = atooid(token);             \
+            local_node->fldname[i] = (token == NULL ? 0 : atooid(token));  \
         }                                                       \
     } while (0);
 
@@ -318,7 +318,7 @@ THR_LOCAL bool skip_read_extern_fields = false;
     do {                                                  \
         token = pg_strtok(&length); /* skip :fldname */   \
         token = pg_strtok(&length); /* get field value */ \
-        local_node->fldname = (enumtype)atoi(token);      \
+        local_node->fldname = (token == NULL ? (enumtype)0 : (enumtype)atoi(token));  \
     } while (0);
 
 /* Read a float field */
@@ -406,7 +406,7 @@ THR_LOCAL bool skip_read_extern_fields = false;
     do {                                                                \
         token = pg_strtok(&length);        /* skip :fldname */          \
         token = pg_strtok(&length);        /* get field value */        \
-        local_node->fldname = atoi(token); /* set field to "unknown" */ \
+        local_node->fldname = (token == NULL ? 0 : atoi(token)); /* set field to "unknown" */ \
     } while (0)
 
 /* Read a Node field */
@@ -1612,7 +1612,7 @@ static Query* _readQuery(void)
     IF_EXIST(isTruncationCastAdded) { /* in order to deal history data when user execute data recovery */
         (void*)pg_strtok(&length);    /* skip :fldname */
         token = pg_strtok(&length);   /* get field value */
-        local_node->tdTruncCastStatus = (TdTruncCastStatus)(strtobool(token) ? 1 : 2);
+        local_node->tdTruncCastStatus = (TdTruncCastStatus)(token == NULL ? 0 : (strtobool(token) ? 1 : 2));
     }
     IF_EXIST(tdTruncCastStatus) {
         READ_ENUM_FIELD(tdTruncCastStatus, TdTruncCastStatus);
@@ -1901,7 +1901,8 @@ static RowMarkClause* _readRowMarkClause(void)
     }
     /* convert noWait (true/false) to LockWaitPolicy (LockWaitError/LockWaitBlock) */
     IF_EXIST(noWait) {
-        READ_ENUM_EXPR(waitPolicy, LockWaitPolicy, (strtobool(token) ? LockWaitError : LockWaitBlock));
+        READ_ENUM_EXPR(waitPolicy, LockWaitPolicy, (token == NULL ? LockWaitBlock :
+            (strtobool(token) ? LockWaitError : LockWaitBlock)));
     }
     READ_BOOL_FIELD(pushedDown);
     IF_EXIST(strength) {
@@ -2529,7 +2530,7 @@ static FuncExpr* _readFuncExpr(void)
         READ_LOCATION_FIELD(location);
     } else {
         token = pg_strtok(&length);
-        local_node->location = atoi(token);
+        local_node->location = (token == NULL ? -1 : atoi(token));
     }
 
     IF_EXIST(refSynOid) {
@@ -6687,11 +6688,10 @@ static QualSkewInfo* _readQualSkewInfo()
 
 static TdigestData* _readTdigestData()
 {
-
     READ_TEMP_LOCALS();
     token = pg_strtok(&length);
     token = pg_strtok(&length);
-    double compression = atof(token);
+    double compression = (token == NULL ? 0 : atof(token));
     int compressNum = 6;
     int compressAdd = 10;
     TdigestData* local_node = makeNodeWithSize(TdigestData, sizeof(TdigestData) +
@@ -6708,7 +6708,7 @@ static TdigestData* _readTdigestData()
     for (int i = 0; i < (local_node->merged_nodes + local_node->unmerged_nodes); i++) {
         READ_FLOAT_FIELD(nodes[i].mean);
         token = pg_strtok(&length);
-        local_node->nodes[i].count = atol(token);
+        local_node->nodes[i].count = (token == NULL ? 0 : atol(token));
     }
     READ_DONE();
 }
@@ -7437,6 +7437,11 @@ static Datum readDatum(bool typbyval)
      * read the actual length of the value
      */
     token = pg_strtok(&tokenLength);
+    if (token == NULL) {
+        ereport(ERROR,
+            (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                errmsg("expected \"]\" to end datum, but got \"[NULL]\"")));
+    }
     length = atoui(token);
 
     token = pg_strtok(&tokenLength); /* read the '[' */
@@ -7458,7 +7463,7 @@ static Datum readDatum(bool typbyval)
         s = (char*)(&res);
         for (i = 0; i < (Size)sizeof(Datum); i++) {
             token = pg_strtok(&tokenLength);
-            s[i] = (char)atoi(token);
+            s[i] = (token == NULL ? 0 : (char)atoi(token));
         }
     } else if (length == 0) {
         res = (Datum)NULL;
@@ -7466,7 +7471,7 @@ static Datum readDatum(bool typbyval)
         s = (char*)palloc(length);
         for (i = 0; i < length; i++) {
             token = pg_strtok(&tokenLength);
-            s[i] = (char)atoi(token);
+            s[i] = (token == NULL ? 0 : (char)atoi(token));
         }
         res = PointerGetDatum(s);
     }
