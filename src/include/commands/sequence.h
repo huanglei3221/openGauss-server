@@ -199,7 +199,6 @@ extern sequence_values *get_sequence_values(Oid sequenceId);
 extern List* sequence_to_options(Oid sequenceId);
 extern void get_sequence_params(Relation rel, int64* uuid, int64* start, int64* increment, int64* maxvalue,
     int64* minvalue, int64* cache, bool* cycle);
-
 #ifdef PGXC
 /*
  * List of actions that registered the callback.

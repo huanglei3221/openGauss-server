@@ -413,5 +413,51 @@ select * from target_table order by id;
 drop table source_table;
 drop table target_table;
 
+-- SELECT INTO
+create table t_identity_0024(id int identity(100, 1), name varchar(10), age int);
+insert into t_identity_0024 (name, age) values('xx', 11);
+insert into t_identity_0024 (name, age) values('xxx', 12);
+create table t_identity_0025(id1 int, name varchar(10));
+select name, age into t_identity_0024_01 from t_identity_0024;
+\d+ t_identity_0024_01
+
+-- expected: success
+select id into t_identity_0024_02 from t_identity_0024;
+
+select id as id_alias into t_identity_0024_02_1 from t_identity_0024;
+\d+ t_identity_0024_02_1
+select ident_current('t_identity_0024_02_1');
+
+select * into t_identity_0024_03 from t_identity_0024;
+\d+ t_identity_0024_03
+select ident_current('t_identity_0024_03');
+
+select id, age as alias_age into t_identity_0024_04 from t_identity_0024;
+\d+ t_identity_0024_04
+select * from t_identity_0024_04 order by id;
+select ident_current('t_identity_0024_04');
+insert into t_identity_0024_04(alias_age) values (23);
+select * from t_identity_0024_04 order by id;
+-- expected: error
+insert into t_identity_0024_04(id, alias_age) values (1000, 22);
+set identity_insert = on;
+insert into t_identity_0024_04(id, alias_age) values (1000, 22);
+set identity_insert = off;
+select ident_current('t_identity_0024_04');
+select * from t_identity_0024_04 order by id;
+
+-- expected: success, multiple tables no need to copy identity, thus not to set identity_insert.
+select i1.id, i2.id1, i1.age as alias_age into t_identity_0024_05 from t_identity_0024 i1, t_identity_0025 i2 where i1.id = i2.id1;
+\d+ t_identity_0024_05
+
+drop table t_identity_0024;
+drop table t_identity_0024_01;
+drop table t_identity_0024_02;
+drop table t_identity_0024_02_1;
+drop table t_identity_0024_03;
+drop table t_identity_0024_04;
+drop table t_identity_0024_05;
+drop table t_identity_0025;
+
 reset current_schema;
 drop schema identity_schema;

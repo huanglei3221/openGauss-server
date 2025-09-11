@@ -1030,20 +1030,21 @@ extern Datum pg_get_function_identity_arguments(PG_FUNCTION_ARGS);
 extern Datum pg_get_function_result(PG_FUNCTION_ARGS);
 extern char* deparse_expression(
     Node* expr, List* dpcontext, bool forceprefix, bool showimplicit, bool no_alias = false);
-extern void get_query_def(Query* query, StringInfo buf, List* parentnamespace, TupleDesc resultDesc, int prettyFlags,
+extern void get_query_def(Query* query, StringInfo buf, List* parentNamespace, TupleDesc resultDesc, int prettyFlags,
     int wrapColumn, int startIndent,
 #ifdef PGXC
-    bool finalise_aggregates, bool sortgroup_colno, void* parserArg = NULL,
+    bool finaliseAggs, bool sortgroupColno, void* parserArg = NULL,
 #endif /* PGXC */
-    bool qrw_phase = false, bool viewdef = false, bool is_fqs = false, bool skip_lock = false);
+    bool qrwPhase = false, bool viewDef = false, bool isFqs = false, bool skipLock = false,
+    IdentityCopyData* seqValue = NULL);
 extern char* deparse_create_sequence(Node* stmt, bool owned_by_none = false);
 extern char* deparse_alter_sequence(Node* stmt, bool owned_by_none = false);
 #ifdef PGXC
 extern void get_hint_string(HintState* hstate, StringInfo buf);
-extern void deparse_query(Query* query, StringInfo buf, List* parentnamespace, bool finalise_aggs, bool sortgroup_colno,
-    void* parserArg = NULL, bool qrw_phase = false, bool is_fqs = false);
-typedef void (*deparse_query_func)(Query* query, StringInfo buf, List* parentnamespace, bool finalise_aggs,
-    bool sortgroup_colno, void* parserArg, bool qrw_phase, bool is_fqs);
+extern void deparse_query(Query* query, StringInfo buf, List* parentNamespace, bool finaliseAggs, bool sortgroupColno,
+    void* parserArg = NULL, bool qrwPhase = false, bool isFqs = false, IdentityCopyData* seqValue = NULL);
+typedef void (*deparse_query_func)(Query* query, StringInfo buf, List* parentNamespace, bool finaliseAggs,
+    bool sortgroupColno, void* parserArg, bool qrwPhase, bool isFqs);
 extern void deparse_targetlist(Query* query, List* targetList, StringInfo buf);
 #endif
 extern List* deparse_context_for(const char* aliasname, Oid relid);

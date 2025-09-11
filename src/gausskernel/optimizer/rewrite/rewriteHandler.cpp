@@ -43,6 +43,7 @@
 #include "rewrite/rewriteHandler.h"
 #include "rewrite/rewriteManip.h"
 #include "rewrite/rewriteRlsPolicy.h"
+#include "utils/int16.h"
 #include "utils/builtins.h"
 #include "utils/bytea.h"
 #include "utils/lsyscache.h"
@@ -68,6 +69,9 @@
 #include "tsdb/utils/ts_redis.h"
 #endif
 #endif
+
+/* convert int128 integer to cstring. */
+#define IdentityInt16Out(x) (DatumGetCString(DirectFunctionCall1(int16out, Int128GetDatum(x))))
 
 /* We use a list of these to detect recursion in RewriteQuery */
 typedef struct rewrite_event {
@@ -5396,6 +5400,7 @@ char* GetCreateTableStmt(Query* parsetree, CreateTableAsStmt* stmt)
      * the column names derived from the query. (Too few column names are OK, too
      * many are not.).
      */
+    IdentityCopyData* identity_data = NULL;
     ListCell* col = NULL;
     ListCell* lc = list_head(into->colNames);
     foreach (col, tlist) {
@@ -5479,6 +5484,46 @@ char* GetCreateTableStmt(Query* parsetree, CreateTableAsStmt* stmt)
         }
 
         coldef->typname = tpname;
+        // support copy identity(start/increment) of source table in SELECT INTO clause
+        // for D format, and only when list_length(rtable) == 1.
+        if (DB_IS_CMPT(D_FORMAT) && stmt->is_select_into &&
+            list_length(cparsetree->rtable) == 1 &&
+            // only one identity column.
+            identity_data == NULL) {
+                RangeTblEntry* rte = lfirst_node(RangeTblEntry, list_head(cparsetree->rtable));
+                Oid seqId = InvalidOid;
+                if (seqId = pg_get_serial_sequence_internal(rte->relid, tle->resorigcol, true, NULL);
+                    OidIsValid(seqId)) {
+                    int64 uuid = 0;
+                    int64 start = 0;
+                    int64 increment = 0;
+                    int64 maxvalue = 0;
+                    int64 minvalue = 0;
+                    int64 cachevalue = 0;
+                    bool cycle = false;
+
+                    Relation relseq = relation_open(seqId, AccessShareLock);
+                    get_sequence_params(relseq, &uuid, &start, &increment, &maxvalue, &minvalue, &cachevalue, &cycle);
+                    relation_close(relseq, AccessShareLock);
+                    identity_data = (IdentityCopyData *)palloc(sizeof(IdentityCopyData));
+                    identity_data->start = (int128)start;
+                    identity_data->increment = (int128)increment;
+                    // reuse to mark this coldef has identity in deparse_query.
+                    coldef->is_serial = true;
+                    Constraint *constraint = makeNode(Constraint);
+                    List* options = list_make2(
+                        (Node *)makeDefElem("start",
+                                            (Node *)makeFloat(IdentityInt16Out(identity_data->start))),
+                        (Node *)makeDefElem("increment",
+                                            (Node *)makeFloat(IdentityInt16Out(identity_data->increment))));
+                    constraint->contype = CONSTR_IDENTITY;
+                    /* keep same to rules in gram.y. */
+                    constraint->generated_when = ATTRIBUTE_IDENTITY_ALWAYS;
+                    constraint->options = options;
+                    constraint->location = -1;
+                    coldef->constraints = lappend(coldef->constraints, constraint);
+                }
+        }
     
         tableElts = lappend(tableElts, coldef);
     }
@@ -5538,7 +5583,7 @@ char* GetCreateTableStmt(Query* parsetree, CreateTableAsStmt* stmt)
 
     StringInfo cquery = makeStringInfo();
 
-    deparse_query(parsetree, cquery, NIL, false, false);
+    deparse_query(parsetree, cquery, NIL, false, false, NULL, false, false, identity_data);
 
     return cquery->data;
 }
