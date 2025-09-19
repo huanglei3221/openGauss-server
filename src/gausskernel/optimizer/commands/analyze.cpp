@@ -4285,7 +4285,7 @@ static int64 acquirePartitionedSampleRows(Relation onerel, VacuumStmt* vacstmt, 
          * ill always in a "need to be analyzed" state.
          */
         if (!estimate_table_rownum) {
-           pgstat_report_analyze(partRel, trows, tdrows);
+            pgstat_report_analyze(partRel, trows, tdrows);
         }
 
         partCell = lnext(partCell);

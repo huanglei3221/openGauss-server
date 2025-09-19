@@ -18833,7 +18833,7 @@ void tryReusePartedIndex(Oid oldId, IndexStmt* stmt, Relation rel)
         stmt->oldPSortOid = irel->rd_rel->relcudescrelid;
         stmt->indexOid = oldId;
 
-        if (!RelationIsSubPartitioned(rel) {
+        if (!RelationIsSubPartitioned(rel)) {
             partOids = relationGetPartitionOidList(rel);
         } else {
             partOids = RelationGetSubPartitionOidList(rel);

@@ -6473,10 +6473,8 @@ void convert_ORCLAUSE_to_join(PlannerInfo *root, BoolExpr *or_clause, Node **jtl
                     if (sublink->subLinkType != EXPR_SUBLINK) {
                         continue;
                     }
-
                     notNullExpr = convert_OREXPR_to_join(root, or_clause, clause, sublink,
-                                            jtlink1, available_rels1, replace);
-
+                                                         jtlink1, available_rels1, replace);
                     if (notNullExpr != NULL) {
                         replace = true;
                     }
