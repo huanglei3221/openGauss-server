@@ -1,3 +1,6 @@
+20251218 我下载代码到服务器编译
+
+
 ![openGauss Logo](doc/openGauss-logo.png)
 
 [English](./README.en.md) | 简体中文
